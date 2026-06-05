@@ -41,16 +41,21 @@ class VietQRService
     public function generateQR(Booking $booking): array
     {
         // Tạo nội dung chuyển khoản unique
-        $referenceCode = 'KS' . $booking->id . strtoupper(Str::random(4));
+        $existing = \App\Models\PaymentLog::where('booking_id', $booking->id)
+            ->where('gateway', 'vietqr')->where('status', 'pending')->first();
 
-        // Lưu reference_code vào payment_logs để sau polling khớp
-        \App\Models\PaymentLog::create([
-            'booking_id'     => $booking->id,
-            'gateway'        => 'vietqr',
-            'reference_code' => $referenceCode,
-            'amount'         => $booking->total_price,
-            'status'         => 'pending',
-        ]);
+        if ($existing) {
+            $referenceCode = $existing->reference_code;
+        } else {
+            $referenceCode = 'KS' . $booking->id . strtoupper(Str::random(4));
+            \App\Models\PaymentLog::create([
+                'booking_id'     => $booking->id,
+                'gateway'        => 'vietqr',
+                'reference_code' => $referenceCode,
+                'amount'         => $booking->total_price,
+                'status'         => 'pending',
+            ]);
+        }
 
         // URL ảnh QR từ VietQR CDN (không cần API key)
         $amount  = (int) $booking->total_price;

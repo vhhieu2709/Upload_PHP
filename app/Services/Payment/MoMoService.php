@@ -65,7 +65,7 @@ class MoMoService
             'signature'   => $signature,
         ]);
 
-        return $response->json('payUrl', '/payment/error/' . $booking->id);
+        return $response->json('payUrl') ?? route('payment.error', $booking->id);
     }
 
     public function verifySignature(array $data): bool

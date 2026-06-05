@@ -52,6 +52,10 @@ class CancellationController extends Controller
 
         $booking = Booking::findOrFail($id);
 
+        if ($booking->user_id !== auth()->id()) {
+            abort(403);
+        }
+
         if ($booking->isCancelled() || $booking->isCompleted()) {
             return redirect()->route('booking.mine')
                 ->with('error', 'Booking này không thể hủy.');

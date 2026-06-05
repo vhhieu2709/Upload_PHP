@@ -73,3 +73,10 @@ Route::middleware(['auth.custom', 'role:receptionist,admin'])->prefix('staff')->
     Route::patch('/bookings/{id}/checkout',  [BookingController::class, 'checkOut'])->name('bookings.checkout');
     Route::patch('/bookings/{id}/refund',    [CancellationController::class, 'processRefund'])->name('bookings.refund');
 });
+
+Route::prefix('webhook')->name('webhook.')->group(function () {
+    Route::post('/momo',        [PaymentController::class, 'webhookMomo'])->name('momo');
+    Route::post('/zalopay',     [PaymentController::class, 'webhookZalopay'])->name('zalopay');
+    Route::post('/vnpay',       [PaymentController::class, 'webhookVnpay'])->name('vnpay');
+    Route::get('/vnpay/return', [PaymentController::class, 'vnpayReturn'])->name('vnpay.return');
+});

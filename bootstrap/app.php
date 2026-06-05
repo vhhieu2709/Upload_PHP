@@ -7,20 +7,24 @@ use Illuminate\Foundation\Configuration\Middleware;
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
         web: __DIR__.'/../routes/web.php',
+        api: __DIR__.'/../routes/api.php',
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
-    ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->validateCsrfTokens(except: [
-        'webhook/*',
-       ]);
+    ->withMiddleware(function (Middleware $middleware) {
+        // Đăng ký alias middleware
         $middleware->alias([
-            'auth.custom'     => \App\Http\Middleware\AuthCustomMiddleware::class,
-            'verified.custom' => \App\Http\Middleware\VerifiedCustomMiddleware::class,
-            'role'            => \App\Http\Middleware\RoleMiddleware::class,
+            'auth.custom'    => \App\Http\Middleware\AuthMiddleware::class,
+            'verified.custom'=> \App\Http\Middleware\VerifiedMiddleware::class,
+            'role'           => \App\Http\Middleware\RoleMiddleware::class,
+            'guest'          => \App\Http\Middleware\GuestMiddleware::class,
+        ]);
+
+        // Exclude webhook routes khỏi CSRF
+        $middleware->validateCsrfTokens(except: [
+            'api/webhook/*',
         ]);
     })
-    ->withExceptions(function (Exceptions $exceptions): void {
+    ->withExceptions(function (Exceptions $exceptions) {
         //
-    })
-    ->create();
+    })->create();

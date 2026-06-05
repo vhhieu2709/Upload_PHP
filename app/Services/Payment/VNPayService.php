@@ -33,7 +33,7 @@ class VNPayService
             'vnp_OrderInfo'  => "Thanh toan dat phong {$booking->id}",
             'vnp_OrderType'  => 'other',
             'vnp_ReturnUrl'  => $this->returnUrl,
-            'vnp_TxnRef'     => $booking->id,
+            'vnp_TxnRef' => (string) $booking->id,
         ];
 
         ksort($params);

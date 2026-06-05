@@ -29,8 +29,8 @@ class ZaloPayService
         $items      = json_encode([]);
         $description = "Khách sạn - Thanh toán đặt phòng #{$booking->id}";
 
-        $data = $this->appId . '|' . $appTransId . '|' . $this->appId
-            . '|' . $amount . '|' . $appTime . '|' . $embedData . '|' . $items;
+        $data = $this->appId . '|' . $appTransId . '|' . $booking->user_id
+             . '|' . $amount . '|' . $appTime . '|' . $embedData . '|' . $items;
 
         $mac = hash_hmac('sha256', $data, $this->key1);
 
@@ -48,7 +48,7 @@ class ZaloPayService
             'mac'          => $mac,
         ]);
 
-        return $response->json('order_url', '/payment/error/' . $booking->id);
+        return $response->json('order_url') ?? route('payment.error', $booking->id);
     }
 
     public function verifyCallback(array $data): bool

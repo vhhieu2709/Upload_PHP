@@ -215,8 +215,11 @@ class PaymentController extends Controller
 
     // ── Core: xác nhận thanh toán thành công ─────────────
     private function confirmPayment(Booking $booking, string $gateway, string $transactionId, array $rawData): void
-    {
-        // Log giao dịch
+{
+    \DB::transaction(function () use ($booking, $gateway, $transactionId, $rawData) {
+        $booking = Booking::lockForUpdate()->find($booking->id);
+        if ($booking->isPaid()) return;
+
         PaymentLog::create([
             'booking_id'     => $booking->id,
             'gateway'        => $gateway,
@@ -226,15 +229,14 @@ class PaymentController extends Controller
             'raw_response'   => $rawData,
         ]);
 
-        // Cập nhật booking
         $booking->update([
             'payment_status' => 'paid',
             'status'         => 'confirmed',
         ]);
 
-        // Đổi trạng thái phòng → booked
         foreach ($booking->rooms as $room) {
             $room->update(['status' => Room::STATUS_BOOKED]);
         }
-    }
+    });
+}
 }
