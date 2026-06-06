@@ -9,13 +9,13 @@ $children = (int)($children ?? 0);
 $people = $adults + $children;
 
 // Tính tổng max_guests của tất cả phòng đã chọn
-$totalMaxGuests = 0;
-foreach ($rooms as $r) $totalMaxGuests += (int)$r['max_guests'];
+// $totalMaxGuests = 0;
+// foreach ($rooms as $r) $totalMaxGuests += (int)$r['max_guests'];
 ?>
 
 <nav aria-label="breadcrumb" class="mb-4">
     <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="<?= url('/') ?>/?controller=room&action=search">Tìm phòng</a></li>
+        <li class="breadcrumb-item"><a href="{{ route('rooms.search') }}">Tìm phòng</a></li>
         <li class="breadcrumb-item active">Đặt phòng</li>
     </ol>
 </nav>
@@ -79,9 +79,10 @@ foreach ($rooms as $r) $totalMaxGuests += (int)$r['max_guests'];
                 <h4 class="fw-bold mb-4">Thông Tin Đặt Phòng</h4>
 
                 <form method="POST"
-                      action="<?= url('/') ?>/?controller=booking&action=create"
-                      id="bookingForm"
-                      novalidate>
+                    action="{{ route('booking.store') }}"
+                    id="bookingForm"
+                    novalidate>
+                    @csrf
 
                     <!-- Truyền tất cả room IDs -->
                     <?php foreach ($roomIds as $rid): ?>
@@ -116,7 +117,7 @@ foreach ($rooms as $r) $totalMaxGuests += (int)$r['max_guests'];
                             <label class="form-label fw-semibold">
                                 Người Lớn <span class="text-danger">*</span>
                             </label>
-                            <input type="hidden" name="adults" id="peopleInput" value="<?= (int)($adults ?? 1) ?>">
+                            <input type="hidden" name="adult_count" id="peopleInput" value="<?= (int)($adults ?? 1) ?>">
                             <input type="number" class="form-control locked-input"
                                 value="<?= (int)($adults ?? 1) ?>" disabled>
                         </div>
@@ -124,7 +125,7 @@ foreach ($rooms as $r) $totalMaxGuests += (int)$r['max_guests'];
                             <label class="form-label fw-semibold">
                                 Trẻ Em
                             </label>
-                            <input type="hidden" name="children" id="childrenInput" value="<?= (int)($children ?? 0) ?>">
+                            <input type="hidden" name="child_count" id="childrenInput" value="<?= (int)($children ?? 0) ?>">
                             <input type="number" class="form-control locked-input"
                                 value="<?= (int)($children ?? 0) ?>" disabled>
                         </div>
@@ -188,8 +189,8 @@ foreach ($rooms as $r) $totalMaxGuests += (int)$r['max_guests'];
                         <button type="submit" id="submitBtn" class="btn btn-primary flex-grow-1">
                             <i class="bi bi-calendar-check me-1"></i>Chọn phương thức thanh toán
                         </button>
-                        <a href="<?= url('/') ?>/?controller=room&action=search&check_in=<?= urlencode($checkIn ?? '') ?>&check_out=<?= urlencode($checkOut ?? '') ?>&adults=<?= $adults ?? 1 ?>&children=<?= $children ?? 0 ?>"
-                           class="btn btn-outline-secondary">
+                        <a href="{{ route('rooms.search', ['check_in' => $checkIn ?? '', 'check_out' => $checkOut ?? '', 'adults' => $adults ?? 1, 'children' => $children ?? 0]) }}"
+                            class="btn btn-outline-secondary">
                             <i class="bi bi-arrow-left me-1"></i>Quay Lại
                         </a>
                     </div>
@@ -201,7 +202,7 @@ foreach ($rooms as $r) $totalMaxGuests += (int)$r['max_guests'];
 
 <script>
 // ── Hằng số từ PHP ──────────────────────────────────
-const pricesPerNight = <?= json_encode(array_map(fn($r) => (float)$r['price'], $rooms)) ?>;
+const pricesPerNight = <?= json_encode($rooms->map(fn($r) => (float)($r->roomType->price ?? 0))->toArray()) ?>;
 const totalPerNight  = pricesPerNight.reduce((a, b) => a + b, 0);
 const MAX_GUESTS     = <?= $totalMaxGuests ?>;
 const TODAY          = '<?= date('Y-m-d') ?>';
@@ -449,15 +450,16 @@ function setFieldState(el, state, feedbackId, msg) {
     }
 }
 
+
 // ── Submit: validate toàn bộ ────────────────────────
 document.getElementById('bookingForm').addEventListener('submit', function(e) {
     let valid = true;
 
-    if (!validateDates())  valid = false;
-    if (!validatePeople()) valid = false;
-    if (!validateName())   valid = false;
-    if (!validateEmail())  valid = false;
-    if (!validatePhone())  valid = false;
+    if (!validateDates())         valid = false;
+    if (!validatePeople())        valid = false;
+    if (!validateName())          valid = false;
+    if (!validateEmail())         valid = false;
+    if (!validatePhone())         valid = false;
 
     if (!valid) {
         e.preventDefault();

@@ -85,4 +85,8 @@ class Booking extends Model
         $deadline = Carbon::parse($this->check_in)->subDays($this->refundDeadlineDays());
         return (int) Carbon::now()->diffInDays($deadline, false);
     }
+    public function getDepositAmountAttribute(): float
+    {
+        return round((float) $this->total_price * 0.5, 2);
+    }
 }

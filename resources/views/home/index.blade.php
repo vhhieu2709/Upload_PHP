@@ -220,12 +220,10 @@ body { font-family: 'Montserrat', sans-serif; background: var(--cream); }
 
         <div class="search-box">
             <h5>Tìm Phòng</h5>
-            <form action="<?= url('/') ?>/?controller=room&action=search"
+            <form action="{{ route('rooms.search') }}"
                   method="GET"
                   id="heroSearchForm"
                   novalidate>
-                <input type="hidden" name="controller" value="room">
-                <input type="hidden" name="action"     value="search">
                 <div class="row g-3 align-items-end">
 
                     <!-- Ngày nhận phòng -->
@@ -299,7 +297,7 @@ body { font-family: 'Montserrat', sans-serif; background: var(--cream); }
         $total      = count($roomTypes);
         $totalPages = max(1, ceil($total / $perPage));
         $page       = max(1, min((int)($_GET['page'] ?? 1), $totalPages));
-        $pageTypes  = array_slice($roomTypes, ($page - 1) * $perPage, $perPage);
+        $pageTypes = $roomTypes->slice(($page - 1) * $perPage, $perPage);
         ?>
 
         <div class="row g-4 justify-content-center">
@@ -322,7 +320,7 @@ body { font-family: 'Montserrat', sans-serif; background: var(--cream); }
                                 <?= number_format($type['price'], 0, ',', '.') ?> VNĐ
                                 <small>/đêm</small>
                             </div>
-                            <a href="<?= url('/') ?>/?controller=room&action=detail&id=<?= $type['id'] ?>"
+                            <a href="{{ route('rooms.detail', $type['id']) }}"
                                class="btn btn-outline-dark btn-sm px-3 fw-semibold">
                                 Chi Tiết
                             </a>

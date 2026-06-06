@@ -42,14 +42,18 @@ class BookingController extends Controller
         }
 
         $nights    = Carbon::parse($checkIn)->diffInDays(Carbon::parse($checkOut));
-        $totalBase = $rooms->sum(fn ($r) => $r->roomType?->base_price ?? 0);
+        $totalBase = $rooms->sum(fn ($r) => $r->roomType?->price ?? 0);
         $total     = $totalBase * max($nights, 1);
+
+        $totalMaxGuests = $rooms->sum(function ($room) {
+            return $room->roomType->max_guests ?? 0;
+        });
 
         $user = Auth::user();
 
         return view('booking.create', compact(
-            'rooms', 'checkIn', 'checkOut',
-            'adults', 'children', 'nights', 'total', 'user'
+            'roomIds','rooms', 'checkIn', 'checkOut',
+            'adults', 'children', 'nights', 'total', 'user', 'totalMaxGuests'
         ));
     }
 
@@ -68,12 +72,19 @@ class BookingController extends Controller
             'customer_name'  => 'required|string|max:200',
             'customer_email' => 'required|email|max:200',
             'customer_phone' => 'required|string|max:20',
-            'payment_method' => 'required|in:vietqr,momo,zalopay,vnpay',
         ]);
 
-        // Lấy phòng và kiểm tra còn trống
+        // Lấy phòng và kiểm tra còn trống (loại trừ phòng đã có booking chưa huỷ trong cùng khoảng ngày)
+        $bookedRoomIds = \DB::table('booking_rooms')
+            ->join('bookings', 'bookings.id', '=', 'booking_rooms.booking_id')
+            ->where('bookings.payment_status', 'paid')
+            ->where('bookings.status', '!=', 'cancelled')
+            ->where('bookings.check_in', '<', $validated['check_out'])
+            ->where('bookings.check_out', '>', $validated['check_in'])
+            ->pluck('booking_rooms.room_id');
+
         $rooms = Room::whereIn('id', $validated['room_ids'])
-            ->where('status', Room::STATUS_AVAILABLE)
+            ->whereNotIn('id', $bookedRoomIds)
             ->get();
 
         if ($rooms->count() !== count($validated['room_ids'])) {
@@ -81,33 +92,29 @@ class BookingController extends Controller
                 ->with('error', 'Một số phòng vừa được đặt bởi người khác. Vui lòng chọn lại.');
         }
 
-        $nights    = Carbon::parse($validated['check_in'])
+        $nights = Carbon::parse($validated['check_in'])
             ->diffInDays(Carbon::parse($validated['check_out']));
-        $total     = $rooms->sum(fn ($r) => $r->roomType?->base_price ?? 0) * max($nights, 1);
+        $total  = $rooms->sum(fn ($r) => $r->roomType?->price ?? 0) * max($nights, 1);
 
         $booking = Booking::create([
-            'user_id'         => Auth::id(),
-            'customer_name'   => $validated['customer_name'],
-            'customer_email'  => $validated['customer_email'],
-            'customer_phone'  => $validated['customer_phone'],
-            'check_in'        => $validated['check_in'],
-            'check_out'       => $validated['check_out'],
-            'adult_count'     => $validated['adult_count'],
-            'child_count'     => $validated['child_count'],
-            'total_price'     => $total,
-            'payment_method'  => $validated['payment_method'],
-            'payment_status'  => 'unpaid',
-            'status'          => 'pending',
+            'user_id'        => Auth::id(),
+            'customer_name'  => $validated['customer_name'],
+            'customer_email' => $validated['customer_email'],
+            'customer_phone' => $validated['customer_phone'],
+            'check_in'       => $validated['check_in'],
+            'check_out'      => $validated['check_out'],
+            'adult_count'    => $validated['adult_count'],
+            'child_count'    => $validated['child_count'],
+            'total_price'    => $total,
+            'payment_method' => null,
+            'payment_status' => 'pending',
+            'status'         => 'pending',
         ]);
 
-        // Gán phòng vào booking_rooms pivot
+        // Gán phòng vào booking_rooms pivot (chưa đánh dấu booked, chờ thanh toán xong)
         $booking->rooms()->attach($rooms->pluck('id'));
 
-        // Đánh dấu phòng là booked
-        Room::whereIn('id', $rooms->pluck('id'))
-            ->update(['status' => Room::STATUS_BOOKED]);
-
-        return redirect()->route('booking.success', $booking->id);
+        return redirect()->route('payment.form', $booking->id);
     }
 
     /**

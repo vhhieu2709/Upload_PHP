@@ -5,7 +5,7 @@
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2 class="fw-bold mb-0">Danh Sách Phòng</h2>
-    <a href="<?= url('/') ?>/?controller=room&action=search" class="btn btn-primary btn-sm">
+    <a href="{{ route('rooms.search') }}" class="btn btn-primary btn-sm">
         <i class="bi bi-search me-1"></i>Tìm Phòng Trống
     </a>
 </div>
@@ -34,7 +34,7 @@
                 </div>
             </div>
             <div class="card-footer bg-white border-0 pb-3">
-                <a href="<?= url('/') ?>/?controller=room&action=detail&id=<?= $room['id'] ?>"
+                <a href="{{ route('rooms.detail', $room->id) }}"
                    class="btn btn-outline-primary w-100 btn-sm">Xem Chi Tiết</a>
             </div>
         </div>

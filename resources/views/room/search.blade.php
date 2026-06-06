@@ -793,9 +793,7 @@ body { background: var(--cream) !important; }
      SEARCH FORM CARD (floating)
 ══════════════════════════════════════════ -->
 <div class="search-card">
-    <form method="GET" action="<?= url('/') ?>/?controller=room&action=search" id="searchForm" novalidate>
-        <input type="hidden" name="controller" value="room">
-        <input type="hidden" name="action"     value="search">
+    <form method="GET" action="{{ route('rooms.search') }}" id="searchForm" novalidate>
         <div class="row g-3 align-items-end">
 
             <!-- Ngày nhận phòng -->
@@ -976,9 +974,7 @@ body { background: var(--cream) !important; }
 
         <!-- Form giỏ phòng -->
         <form id="multiBookingForm" method="GET"
-              action="<?= url('/') ?>/?controller=booking&action=create">
-            <input type="hidden" name="controller" value="booking">
-            <input type="hidden" name="action"     value="create">
+                action="{{ route('booking.create') }}">    value="create">
             <input type="hidden" name="check_in"   value="<?= htmlspecialchars($checkIn) ?>">
             <input type="hidden" name="check_out"  value="<?= htmlspecialchars($checkOut) ?>">
             <input type="hidden" name="adults"     value="<?= (int)$adults ?>">
@@ -1049,7 +1045,7 @@ body { background: var(--cream) !important; }
                                 <?php endif; ?>
                             </div>
                             <!-- Nút xem chi tiết — stopPropagation để không toggle accordion -->
-                            <a href="<?= url('/') ?>/?controller=room&action=detail&id=<?= $type['room_type_id'] ?>&check_in=<?= urlencode($checkIn) ?>&check_out=<?= urlencode($checkOut) ?>&adults=<?= $adults ?>&children=<?= $children ?>"
+                            <a href="{{ route('rooms.detail', $type['room_type_id']) }}?check_in={{ urlencode($checkIn) }}&check_out={{ urlencode($checkOut) }}&adults={{ $adults }}&children={{ $children }}"
                                class="btn-detail"
                                onclick="event.stopPropagation()">
                                 <i class="bi bi-eye"></i>Xem chi tiết
@@ -1100,7 +1096,7 @@ body { background: var(--cream) !important; }
                                 $isTaken = $room['is_booked'] ?? false;
                             ?>
                             <button type="button" class="btn-quick <?= $isTaken ? 'taken' : '' ?>"
-                                    data-href="<?= url('/') ?>/?controller=booking&action=create&room_id=<?= $room['id'] ?>&check_in=<?= urlencode($checkIn) ?>&check_out=<?= urlencode($checkOut) ?>&adults=<?= $adults ?>&children=<?= $children ?>"
+                                    data-href="{{ route('booking.create') }}?room_id={{ $room['id'] }}&check_in={{ urlencode($checkIn) }}&check_out={{ urlencode($checkOut) }}&adults={{ $adults }}&children={{ $children }}"
                                     data-max-guests="<?= (int)$type['max_guests'] ?>"
                                     data-max-adults="<?= (int)$type['max_adults'] ?>"
                                     data-max-children="<?= (int)$type['max_children'] ?>"

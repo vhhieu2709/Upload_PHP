@@ -21,7 +21,7 @@ class RoomController extends Controller
             }])
             ->get();
 
-        return view('room.index', compact('roomTypes'));
+        return view('room.index', ['rooms' => $roomTypes]);
     }
 
     /**
@@ -46,6 +46,7 @@ class RoomController extends Controller
         // Room_id đã bị đặt trùng ngày
         $bookedRoomIds = \DB::table('booking_rooms')
             ->join('bookings', 'bookings.id', '=', 'booking_rooms.booking_id')
+            ->where('bookings.payment_status', 'paid')
             ->where('bookings.status', '!=', 'cancelled')
             ->where('bookings.check_in', '<', $checkOut)
             ->where('bookings.check_out', '>', $checkIn)
@@ -79,19 +80,58 @@ class RoomController extends Controller
     /**
      * Chi tiết loại phòng
      */
-    public function detail(int $id)
+    public function detail(int $id, Request $request)
     {
-        $roomType = RoomType::with(['amenities', 'reviews.user'])->findOrFail($id);
-        $avgRating = $roomType->averageRating();
-        return view('room.detail', compact('roomType', 'avgRating'));
+        $room      = RoomType::with(['amenities', 'reviews.user'])->findOrFail($id);
+        $avgRating = $room->averageRating();
+
+        $checkIn  = $request->check_in;
+        $checkOut = $request->check_out;
+
+        // Lấy room_id đã bị đặt trong khoảng ngày (nếu có chọn ngày)
+        $bookedRoomIds = collect();
+        if ($checkIn && $checkOut) {
+            $bookedRoomIds = \DB::table('booking_rooms')
+                ->join('bookings', 'bookings.id', '=', 'booking_rooms.booking_id')
+                ->where('bookings.payment_status', 'paid')
+                ->where('bookings.status', '!=', 'cancelled')
+                ->where('bookings.check_in', '<', $checkOut)
+                ->where('bookings.check_out', '>', $checkIn)
+                ->pluck('booking_rooms.room_id');
+        }
+    
+        // Lấy tất cả phòng của loại này
+        $allRoomsOfType = Room::where('room_type_id', $id)
+            ->orderBy('floor')
+            ->orderBy('room_number')
+            ->get()
+            ->map(function ($r) use ($bookedRoomIds) {
+                $r->is_booked = $bookedRoomIds->contains($r->id);
+                return $r;
+            });
+
+        $adults   = (int) ($request->adults ?? 1);
+        $children = (int) ($request->children ?? 0);
+
+        return view('room.detail', compact(
+            'room', 'avgRating',
+            'allRoomsOfType', 'bookedRoomIds',
+            'checkIn', 'checkOut',
+            'adults', 'children'
+        ));
     }
 
     /**
      * Danh sách tiện nghi của loại phòng (AJAX)
      */
-    public function amenities(int $id)
+    public function amenities(?int $id = null)
     {
-        $roomType = RoomType::with('amenities')->findOrFail($id);
-        return response()->json($roomType->amenities);
+        if ($id) {
+            $roomType = RoomType::with('amenities')->findOrFail($id);
+            return response()->json($roomType->amenities);
+        }
+
+        $roomTypes = RoomType::with('amenities')->get();
+        return view('room.amenities', compact('roomTypes'));
     }
 }

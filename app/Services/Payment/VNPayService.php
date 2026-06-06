@@ -25,7 +25,7 @@ class VNPayService
             'vnp_Version'    => '2.1.0',
             'vnp_Command'    => 'pay',
             'vnp_TmnCode'    => $this->tmnCode,
-            'vnp_Amount'     => (int) ($booking->total_price * 100), // VNPay nhân 100
+            'vnp_Amount' => (int) ($booking->deposit_amount * 100),
             'vnp_CreateDate' => now()->format('YmdHis'),
             'vnp_CurrCode'   => 'VND',
             'vnp_IpAddr'     => request()->ip(),

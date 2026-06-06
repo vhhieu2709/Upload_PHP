@@ -1,16 +1,22 @@
 @extends('layouts.main')
 
+@section('title', 'Thanh toán thất bại')
+
 @section('content')
-<?php $pageTitle = 'Lỗi - Khách Sạn ROYAL HOTEL'; ?>
-<?php require __DIR__ . '/_header.php'; ?>
-
-<div class="container-sm" style="text-align:center;padding-top:60px">
-  <div style="font-size:80px;margin-bottom:16px">⚠️</div>
-  <h1 style="font-size:28px;font-weight:800;color:#e74c3c;margin-bottom:12px">Đã xảy ra lỗi</h1>
-  <p style="color:#666;font-size:16px;margin-bottom:32px"><?= htmlspecialchars($message ?? 'Lỗi không xác định.') ?></p>
-  <a href="index.php?route=booking" class="btn btn-primary btn-lg">← Quay lại trang đặt phòng</a>
+<div class="text-center py-5">
+    <div style="font-size:80px;margin-bottom:16px">⚠️</div>
+    <h1 class="fw-bold text-danger mb-3">Thanh toán thất bại</h1>
+    <p class="text-muted fs-5 mb-4">
+        Đặt phòng #{{ $booking->id }} chưa được thanh toán thành công.<br>
+        Vui lòng thử lại hoặc chọn phương thức thanh toán khác.
+    </p>
+    <div class="d-flex gap-3 justify-content-center flex-wrap">
+        <a href="{{ route('payment.show', $booking->id) }}" class="btn btn-primary btn-lg">
+            <i class="bi bi-arrow-clockwise me-2"></i>Thử lại
+        </a>
+        <a href="{{ route('booking.mine') }}" class="btn btn-outline-secondary btn-lg">
+            <i class="bi bi-list-check me-2"></i>Đặt phòng của tôi
+        </a>
+    </div>
 </div>
-
-</body></html>
-
 @endsection

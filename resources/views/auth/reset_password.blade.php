@@ -5,7 +5,8 @@
     <div class="hotel-brand">Royal Hotel</div>
     <p class="subtitle">Tạo mật khẩu mới</p>
 
-    <form action="<?= url('/') ?>/?controller=auth&action=resetPassword" method="POST" autocomplete="off" novalidate>
+    <form action="{{ route('password.reset') }}" method="POST" autocomplete="off" novalidate>
+    @csrf
         <div class="mb-4 text-start">
             <label for="new_password" class="form-label" style="font-weight: 600; color: #1e293b; font-size: 0.9rem; margin-bottom: 8px;">Mật khẩu mới</label>
             <div class="password-wrapper">
@@ -49,7 +50,7 @@
         </div>
 
         <div class="text-center">
-            <a href="<?= url('/') ?>/?controller=auth&action=login" style="color: #b08d28; font-weight: 600; text-decoration: none;">Quay lại Đăng Nhập</a>
+            <a href="{{ route('login') }}" style="color: #b08d28; font-weight: 600; text-decoration: none;">Quay lại Đăng Nhập</a>
         </div>
     </form>
 </div>

@@ -4,11 +4,12 @@
 <div class="auth-card" data-aos="fade-up">
     <div class="auth-header">
         <h2>Xác thực tài khoản</h2>
-        <p>Mã OTP đã được gửi đến email: <strong><?= htmlspecialchars($email) ?></strong></p>
+        <p class="mb-0">Mã OTP đã được gửi đến email: <strong>{{ $email }}</strong></p>
     </div>
 
     <div class="auth-body">
-        <form action="<?= url('/') ?>/index.php?controller=auth&action=verifyAccount" method="POST" class="auth-form">
+        <form action="{{ route('verify') }}" method="POST" class="auth-form">
+        @csrf
             <div class="form-group mb-4">
                 <label for="otp" class="form-label">Nhập mã OTP (6 chữ số)</label>
                 <input type="text" 
@@ -27,7 +28,7 @@
         <div class="text-center mt-4">
             <p class="mb-0">Không nhận được mã?</p>
             <div id="resend-container">
-                <a href="<?= url('/') ?>/index.php?controller=auth&action=resendVerifyOtp" id="resend-link" class="resend-link">Gửi lại mã OTP</a>
+                <a href="{{ route('verify') }}" id="resend-link" class="resend-link">Gửi lại mã OTP</a>
                 <p id="countdown-text" class="text-muted small mt-2" style="display: none;">Bạn có thể gửi lại mã sau <span id="timer">60</span> giây</p>
             </div>
         </div>

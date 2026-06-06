@@ -3,28 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= htmlspecialchars($pageTitle ?? 'Khách Sạn') ?></title>
+    <title>@yield('title', 'Khách Sạn ROYAL HOTEL')</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <style>
-        body { font-family: 'DM Sans', sans-serif; }
+        body { font-family: 'DM Sans', sans-serif; background-color: #f8f9fa; display: flex; flex-direction: column; min-height: 100vh; }
         h1, h2, h3, h4, h5, .page-title { font-family: 'Cormorant Garamond', serif; }
-    </style>
-    <style>
-        body { background-color: #f8f9fa; display: flex; flex-direction: column; min-height: 100vh; }
         .navbar-brand { font-weight: 700; letter-spacing: .5px; }
         .room-card { transition: transform .2s, box-shadow .2s; }
-        .room-card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0,0,0,.12)!important; }
-        footer { border-top: 1px solid #dee2e6;margin-top: auto !important; }
+        .room-card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0,0,0,.12) !important; }
+        footer { border-top: 1px solid #dee2e6; margin-top: auto !important; }
         main { flex: 1 0 auto; }
     </style>
+    @stack('styles')
 </head>
 <body>
 
 <!-- NAVBAR -->
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
     <div class="container">
-        <a class="navbar-brand" href="<?= url('/') ?>/?controller=home">
+        <a class="navbar-brand" href="{{ route('home') }}">
             <i class="bi bi-building me-1"></i>ROYAL HOTEL
         </a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
@@ -33,58 +31,72 @@
         <div class="collapse navbar-collapse" id="navMenu">
             <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                 <li class="nav-item">
-                    <a class="nav-link" href="<?= url('/') ?>/?controller=home">Trang chủ</a>
+                    <a class="nav-link" href="{{ route('home') }}">Trang chủ</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="<?= url('/') ?>/?controller=home&action=about">Giới thiệu</a>
+                    <a class="nav-link" href="{{ route('about') }}">Giới thiệu</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="<?= url('/') ?>/?controller=room&action=amenities">Tiện nghi</a>
+                    <a class="nav-link" href="{{ route('amenities') }}">Tiện nghi</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="<?= url('/') ?>/?controller=home&action=contact">Liên hệ</a>
+                    <a class="nav-link" href="{{ route('contact') }}">Liên hệ</a>
                 </li>
             </ul>
             <ul class="navbar-nav">
-                <?php if (!empty(session('user_id'))): ?>
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                        <i class="bi bi-person-circle me-1"></i>
-                        <?= htmlspecialchars(session('user.fullname') ?? 'Tài khoản') ?>
-                    </a>
-                    <ul class="dropdown-menu dropdown-menu-end">
-                        <li><a class="dropdown-item" href="<?= url('/') ?>/?controller=booking&action=myBookings">
-                            <i class="bi bi-calendar-check me-1"></i>Đặt phòng của tôi</a>
-                        </li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item text-danger" href="<?= url('/') ?>/?controller=auth&action=logout">
-                            <i class="bi bi-box-arrow-right me-1"></i>Đăng xuất</a>
-                        </li>
-                    </ul>
-                </li>
-                <?php else: ?>
-                <li class="nav-item">
-                    <a class="nav-link" href="<?= url('/') ?>/?controller=auth&action=login">Đăng nhập</a>
-                </li>
-                <li class="nav-item">
-                    <a class="btn btn-outline-light btn-sm ms-2 my-auto"
-                       href="<?= url('/') ?>/?controller=auth&action=register">Đăng ký</a>
-                </li>
-                <?php endif; ?>
+                @if(session('user_id'))
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
+                            <i class="bi bi-person-circle me-1"></i>
+                            {{ session('user.fullname', 'Tài khoản') }}
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li>
+                                <a class="dropdown-item" href="{{ route('booking.mine') }}">
+                                    <i class="bi bi-calendar-check me-1"></i>Đặt phòng của tôi
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <form action="{{ route('logout') }}" method="POST" class="m-0">
+                                    @csrf
+                                    <button type="submit" class="dropdown-item text-danger">
+                                        <i class="bi bi-box-arrow-right me-1"></i>Đăng xuất
+                                    </button>
+                                </form>
+                            </li>
+                        </ul>
+                    </li>
+                @else
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ route('login') }}">Đăng nhập</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="btn btn-outline-light btn-sm ms-2 my-auto" href="{{ route('register') }}">Đăng ký</a>
+                    </li>
+                @endif
             </ul>
         </div>
     </div>
 </nav>
 
 <!-- FLASH MESSAGE -->
-<?php if (!empty($flash)): ?>
-<div class="container mt-3">
-    <div class="alert alert-<?= $flash['type'] === 'error' ? 'danger' : htmlspecialchars($flash['type']) ?> alert-dismissible fade show" role="alert">
-        <?= htmlspecialchars($flash['message']) ?>
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+@if(session('success'))
+    <div class="container mt-3">
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
     </div>
-</div>
-<?php endif; ?>
+@endif
+@if(session('error'))
+    <div class="container mt-3">
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            {{ session('error') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    </div>
+@endif
 
 <!-- NỘI DUNG CHÍNH -->
 <main class="py-4">
@@ -110,17 +122,18 @@
             <div class="col-md-4">
                 <h6 class="fw-bold">Liên kết nhanh</h6>
                 <ul class="list-unstyled small">
-                    <li><a class="text-light text-decoration-none" href="<?= url('/') ?>/?controller=home#rooms-section">Danh sách phòng</a></li>
-                    <li><a class="text-light text-decoration-none" href="<?= url('/') ?>/?controller=room&action=search">Tìm phòng trống</a></li>
-                    <li><a class="text-light text-decoration-none" href="<?= url('/') ?>/?controller=home&action=contact">Liên hệ</a></li>
+                    <li><a class="text-light text-decoration-none" href="{{ route('rooms.index') }}">Danh sách phòng</a></li>
+                    <li><a class="text-light text-decoration-none" href="{{ route('rooms.search') }}">Tìm phòng trống</a></li>
+                    <li><a class="text-light text-decoration-none" href="{{ route('contact') }}">Liên hệ</a></li>
                 </ul>
             </div>
         </div>
         <hr class="border-secondary mt-3 mb-2">
-        <p class="text-center text-light small mb-0">&copy; <?= date('Y') ?> ROYAL HOTEL. All rights reserved.</p>
+        <p class="text-center text-light small mb-0">&copy; {{ date('Y') }} ROYAL HOTEL. All rights reserved.</p>
     </div>
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+@stack('scripts')
 </body>
 </html>

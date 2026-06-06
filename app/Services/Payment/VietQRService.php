@@ -22,7 +22,7 @@ class VietQRService
     private string $bankBin;
     private string $accountNo;
     private string $accountName;
-    private string $sePayToken;
+    private ?string $sePayToken;
     private string $sePayApiUrl;
 
     public function __construct()
@@ -52,13 +52,13 @@ class VietQRService
                 'booking_id'     => $booking->id,
                 'gateway'        => 'vietqr',
                 'reference_code' => $referenceCode,
-                'amount'         => $booking->total_price,
+                'amount'         => $booking->deposit_amount,
                 'status'         => 'pending',
             ]);
         }
 
         // URL ảnh QR từ VietQR CDN (không cần API key)
-        $amount  = (int) $booking->total_price;
+        $amount  = (int) $booking->deposit_amount;
         $qrUrl   = "https://img.vietqr.io/image/{$this->bankBin}-{$this->accountNo}-compact2.png"
             . "?amount={$amount}"
             . "&addInfo=" . urlencode($referenceCode)
@@ -95,7 +95,7 @@ class VietQRService
                 ->timeout(5)
                 ->get("{$this->sePayApiUrl}/transactions/list", [
                     'transaction_content' => $log->reference_code,
-                    'limit'               => 1,
+                    'limit'               => 10,
                 ]);
 
             if (!$response->successful()) return null;
@@ -104,11 +104,16 @@ class VietQRService
 
             if (empty($transactions)) return null;
 
-            $tx = $transactions[0];
+            // Tìm giao dịch có chứa reference_code trong nội dung
+            $tx = collect($transactions)->first(function ($t) use ($log) {
+                return str_contains($t['transaction_content'] ?? '', $log->reference_code);
+            });
+
+            if (!$tx) return null;
 
             // Kiểm tra số tiền khớp (±1000đ để tránh lỗi làm tròn)
             $received = (float) ($tx['amount_in'] ?? 0);
-            if (abs($received - $booking->total_price) > 1000) return null;
+            if (abs($received - $booking->deposit_amount) > 1000) return null;
 
             // Cập nhật log thành success
             $log->update([

@@ -9,7 +9,7 @@
 <div class="text-center py-5">
     <i class="bi bi-calendar-x fs-1 text-muted d-block mb-2"></i>
     <p class="text-muted mb-3">Bạn chưa có đặt phòng nào.</p>
-    <a href="<?= url('/') ?>/?controller=room&action=search" class="btn btn-primary">
+    <a href="{{ route('rooms.search') }}" class="btn btn-primary">
         Tìm Phòng Ngay
     </a>
 </div>
@@ -62,13 +62,10 @@
                 <td>
                     <?php if ($b['status'] === 'pending' && $b['payment_status'] !== 'paid'): ?>
                     <div class="d-flex gap-1">
-                        <a href="<?= url('/') ?>/?controller=booking&action=payment&id=<?= $b['id'] ?>"
-                           class="btn btn-sm btn-outline-success">Thanh toán</a>
-                        <form method="POST" action="<?= url('/') ?>/?controller=booking&action=cancel"
-                              onsubmit="return confirm('Huỷ đặt phòng này?')">
-                            <input type="hidden" name="booking_id" value="<?= $b['id'] ?>">
-                            <button class="btn btn-sm btn-outline-danger">Huỷ</button>
-                        </form>
+                        <a href="{{ route('payment.show', $b->id) }}"
+                            class="btn btn-sm btn-outline-success">Thanh toán</a>
+                        <a href="{{ route('booking.cancel.show', $b->id) }}"
+                            class="btn btn-sm btn-outline-danger">Huỷ</a>
                     </div>
                     <?php endif; ?>
                 </td>

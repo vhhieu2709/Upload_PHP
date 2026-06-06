@@ -24,12 +24,66 @@ class PaymentController extends Controller
     /**
      * Hiển thị trang thanh toán theo phương thức đã chọn.
      */
+    public function updateMethod(Request $request, int $bookingId)
+    {
+        $booking = Booking::findOrFail($bookingId);
+
+        if ($booking->isPaid()) {
+            return redirect()->route('payment.success', $bookingId);
+        }
+
+        $request->validate([
+            'payment_method' => 'required|in:vietqr,momo,zalopay,vnpay',
+        ]);
+
+        $booking->update(['payment_method' => $request->payment_method]);
+
+        return redirect()->route('payment.show', $bookingId);
+    }
+    public function form(int $bookingId)
+    {
+        $booking = Booking::with('rooms.roomType')->findOrFail($bookingId);
+
+        if ($booking->isPaid()) {
+            return redirect()->route('payment.success', $bookingId);
+        }
+
+        return view('payment.form', compact('booking'));
+    }
+
     public function show(int $bookingId)
     {
         $booking = Booking::with('rooms.roomType')->findOrFail($bookingId);
 
         if ($booking->isPaid()) {
             return redirect()->route('payment.success', $bookingId);
+        }
+
+        // Kiểm tra phòng có còn available không
+        $bookedRoomIds = \DB::table('booking_rooms')
+            ->join('bookings', 'bookings.id', '=', 'booking_rooms.booking_id')
+            ->where('bookings.payment_status', 'paid')
+            ->where('bookings.status', '!=', 'cancelled')
+            ->where('bookings.id', '!=', $bookingId)
+            ->where('bookings.check_in', '<', $booking->check_out)
+            ->where('bookings.check_out', '>', $booking->check_in)
+            ->pluck('booking_rooms.room_id');
+
+        $conflictRoom = $booking->rooms->first(fn($r) => $bookedRoomIds->contains($r->id));
+
+        if ($conflictRoom) {
+            // Hủy booking này vì phòng đã bị người khác đặt
+            $booking->update([
+                'status'              => 'cancelled',
+                'cancelled_at'        => now(),
+                'cancellation_reason' => 'Phòng đã được đặt bởi khách khác.',
+                'refund_status'       => 'none',
+            ]);
+            foreach ($booking->rooms as $room) {
+                $room->update(['status' => \App\Models\Room::STATUS_AVAILABLE]);
+            }
+            return redirect()->route('booking.mine')
+                ->with('error', 'Rất tiếc, phòng ' . $conflictRoom->room_number . ' đã được đặt bởi khách khác. Đặt phòng của bạn đã bị hủy tự động.');
         }
 
         return match ($booking->payment_method) {

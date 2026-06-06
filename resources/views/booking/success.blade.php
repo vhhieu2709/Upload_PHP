@@ -69,15 +69,10 @@
 </div>
 
 <div class="d-flex gap-3 justify-content-center flex-wrap mt-4">
-    <a href="<?= url('/') ?>/?controller=booking&action=payment&id=<?= $booking['id'] ?>&method=vietqr"
-       class="btn btn-success">
-        <i class="bi bi-qr-code me-1"></i>Thanh Toán VietQR
+    <a href="{{ route('payment.show', $booking->id) }}" class="btn btn-success">
+        <i class="bi bi-credit-card me-1"></i>Thanh Toán Ngay
     </a>
-    <a href="<?= url('/') ?>/?controller=booking&action=payment&id=<?= $booking['id'] ?>&method=momo"
-       class="btn btn-danger">
-        <i class="bi bi-phone me-1"></i>Thanh Toán MOMO
-    </a>
-    <a href="<?= url('/') ?>/?controller=home" class="btn btn-outline-secondary">
+    <a href="{{ route('home') }}" class="btn btn-outline-secondary">
         Về Trang Chủ
     </a>
 </div>

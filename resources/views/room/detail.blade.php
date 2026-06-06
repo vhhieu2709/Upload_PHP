@@ -291,7 +291,7 @@ body { font-family: 'DM Sans', sans-serif; background: var(--cream); }
 
 <!-- Breadcrumb -->
 <nav class="bc">
-    <a href="<?= url('/') ?>/?controller=home">Trang Chủ</a>
+    <a href="{{ route('home') }}">Trang Chủ</a>
     <span class="sep">/</span>
     <span><?= htmlspecialchars($room['type_name'] ?? '') ?></span>
 </nav>
@@ -512,7 +512,7 @@ ksort($byFloor);
                         <div class="floor-lbl">Tầng <?= $floor ?></div>
                         <div class="floor-rooms">
                             <?php foreach ($floorRooms as $r):
-                                $taken = in_array($r['id'], $bookedRoomIds ?? []);
+                                $taken = ($bookedRoomIds ?? collect())->contains($r['id']);
                             ?>
                             <button type="button"
                                     class="rm-btn <?= ($taken || $isInsufficient) ? 'taken' : '' ?>"
@@ -562,9 +562,7 @@ ksort($byFloor);
 <?php endif; ?>
 
 <!-- Hidden form để submit -->
-<form method="GET" action="<?= url('/') ?>/" id="bookingForm" style="display:none;">
-    <input type="hidden" name="controller" value="booking">
-    <input type="hidden" name="action"     value="create">
+<form method="GET" action="{{ route('booking.create') }}" id="bookingForm" style="display:none;">Vous avez dit : cụ thể ra
     <input type="hidden" name="check_in"   id="formCheckIn"  value="">
     <input type="hidden" name="check_out"  id="formCheckOut" value="">
     <input type="hidden" name="adults"     id="formAdults"   value="<?= $adults ?>">

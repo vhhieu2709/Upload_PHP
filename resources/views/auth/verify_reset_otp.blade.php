@@ -4,9 +4,10 @@
 <div class="auth-card" data-aos="fade-up" data-aos-duration="1000">
     <div class="hotel-brand">Royal Hotel</div>
     <p class="subtitle">Xác Nhận Khôi Phục Mật Khẩu</p>
-    <p class="text-center mb-4" style="color: #475569;">Mã OTP đã được gửi đến email:<br><strong><?= htmlspecialchars($email) ?></strong></p>
+    <p class="text-center mb-4" style="color: #475569;">Mã OTP đã được gửi đến email:<br><strong>{{ $email }}</strong></p>
 
-    <form action="<?= url('/') ?>/?controller=auth&action=verifyResetOtp" method="POST">
+    <form action="{{ route('password.verify-otp') }}" method="POST">
+        @csrf
         <div class="mb-4 text-start">
             <label for="code" class="form-label" style="font-weight: 600; color: #1e293b; font-size: 0.9rem; margin-bottom: 8px;">Nhập Mã OTP (6 chữ số)</label>
             <input type="text" class="form-control" style="text-align: center; letter-spacing: 2px; font-weight: 600;" id="code" name="otp" required maxlength="6" placeholder="Ví dụ: 123456" autocomplete="off">
@@ -21,13 +22,13 @@
     </form>
     
     <div class="text-center">
-        <a href="<?= url('/') ?>/?controller=auth&action=resendResetOtp" class="btn btn-link p-0 text-decoration-none mt-1" style="color: #b08d28; font-weight: 500;">
+        <a href="{{ route('password.verify-otp') }}" class="btn btn-link p-0 text-decoration-none mt-1" style="color: #b08d28; font-weight: 500;">
             Gửi lại mã OTP
         </a>
     </div>
 
     <div class="text-center mt-3">
-        <a href="<?= url('/') ?>/?controller=auth&action=forgotPassword" style="font-size: 0.85rem; color: #64748b; text-decoration: none;">
+        <a href="{{ route('password.forgot') }}" style="font-size: 0.85rem; color: #64748b; text-decoration: none;">
             <i class="bi bi-arrow-left"></i> Quay lại
         </a>
     </div>

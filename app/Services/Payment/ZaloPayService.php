@@ -24,7 +24,7 @@ class ZaloPayService
     {
         $appTransId = date('ymd') . '_' . $booking->id;
         $appTime    = round(microtime(true) * 1000);
-        $amount     = (int) $booking->total_price;
+        $amount = (int) $booking->deposit_amount;
         $embedData  = json_encode(['booking_id' => $booking->id]);
         $items      = json_encode([]);
         $description = "Khách sạn - Thanh toán đặt phòng #{$booking->id}";

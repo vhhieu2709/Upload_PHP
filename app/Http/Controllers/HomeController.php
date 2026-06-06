@@ -20,8 +20,9 @@ class HomeController extends Controller
             ->latest()
             ->take(6)
             ->get();
+        $roomTypes = RoomType::all();
 
-        return view('home.index', compact('featuredRooms', 'latestReviews'));
+        return view('home.index', compact('featuredRooms', 'latestReviews', 'roomTypes'));
     }
 
     public function about()  { return view('home.about'); }

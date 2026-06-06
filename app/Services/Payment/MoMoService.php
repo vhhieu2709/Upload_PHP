@@ -31,7 +31,7 @@ class MoMoService
     {
         $orderId    = (string) $booking->id;
         $requestId  = $this->partnerCode . time();
-        $amount     = (int) $booking->total_price;
+        $amount = (int) $booking->deposit_amount;
         $orderInfo  = "Thanh toán đặt phòng #" . $booking->id;
         $requestType = 'payWithMethod';
         $extraData  = '';

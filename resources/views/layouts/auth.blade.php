@@ -213,15 +213,22 @@
     <div class="auth-container">
         <div class="auth-wrapper">
             <!-- FLASH MESSAGE -->
-            <?php if (!empty(session('flash'))): ?>
-                <?php $flash = session('flash'); unset(session('flash')); ?>
-                <div style="max-width: 480px; margin: 0 auto 15px auto;">
-                    <div class="alert alert-<?= $flash['type'] === 'error' ? 'danger' : htmlspecialchars($flash['type']) ?> alert-dismissible fade show text-center" role="alert" style="border-radius: 10px; backdrop-filter: blur(5px);">
-                        <?= htmlspecialchars($flash['message']) ?>
+            @if(session('success'))
+                <div style="max-width:480px;margin:0 auto 15px auto;">
+                    <div class="alert alert-success alert-dismissible fade show text-center" role="alert">
+                        {{ session('success') }}
                         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                     </div>
                 </div>
-            <?php endif; ?>
+            @endif
+            @if(session('error'))
+                <div style="max-width:480px;margin:0 auto 15px auto;">
+                    <div class="alert alert-danger alert-dismissible fade show text-center" role="alert">
+                        {{ session('error') }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                </div>
+            @endif
 
             @yield('content')
         </div>

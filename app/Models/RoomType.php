@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class RoomType extends Model
 {
-    use HasFactory, Notifiable; 
+     
     protected $fillable = [
         'type_name', 'price', 'max_adults',
         'max_children', 'max_guests', 'description', 'image',

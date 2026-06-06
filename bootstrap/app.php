@@ -14,8 +14,8 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware) {
         // Đăng ký alias middleware
         $middleware->alias([
-            'auth.custom'    => \App\Http\Middleware\AuthMiddleware::class,
-            'verified.custom'=> \App\Http\Middleware\VerifiedMiddleware::class,
+            'auth.custom' => App\Http\Middleware\AuthCustomMiddleware::class,
+            'verified.custom'=> \App\Http\Middleware\VerifiedCustomMiddleware::class,
             'role'           => \App\Http\Middleware\RoleMiddleware::class,
             'guest'          => \App\Http\Middleware\GuestMiddleware::class,
         ]);

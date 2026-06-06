@@ -6,7 +6,7 @@ use App\Http\Controllers\RoomController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\CancellationController;
-use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\AuthController;
 
 // ============================================================
 // PUBLIC — Không cần đăng nhập
@@ -20,6 +20,7 @@ Route::get('/rooms',              [RoomController::class, 'index'])->name('rooms
 Route::get('/rooms/search',       [RoomController::class, 'search'])->name('rooms.search');
 Route::get('/rooms/{id}',         [RoomController::class, 'detail'])->name('rooms.detail');
 Route::get('/rooms/{id}/amenities',[RoomController::class, 'amenities'])->name('rooms.amenities');
+Route::get('/amenities',          [RoomController::class, 'amenities'])->name('amenities');
 
 // Auth
 Route::middleware('guest')->group(function () {
@@ -51,9 +52,11 @@ Route::middleware(['auth.custom', 'verified.custom'])->group(function () {
     Route::get('/my-bookings',          [BookingController::class, 'myBookings'])->name('booking.mine');
 
     // Thanh toán
+    Route::get('/payment/{bookingId}/form',    [PaymentController::class, 'form'])->name('payment.form');
     Route::get('/payment/{bookingId}',         [PaymentController::class, 'show'])->name('payment.show');
     Route::get('/payment/success/{bookingId}', [PaymentController::class, 'success'])->name('payment.success');
     Route::get('/payment/error/{bookingId}',   [PaymentController::class, 'error'])->name('payment.error');
+    Route::patch('/payment/{bookingId}',       [PaymentController::class, 'updateMethod'])->name('payment.update');
 
     // Polling endpoint cho VietQR (AJAX check mỗi 5 giây)
     Route::get('/payment/check/{bookingId}', [PaymentController::class, 'checkStatus'])->name('payment.check');

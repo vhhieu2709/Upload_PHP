@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Auth;
+namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
@@ -69,7 +69,8 @@ class AuthController extends Controller
 
         [$otp, $expiresAt] = $this->generateOtp();
 
-        $user = User::create([
+       $user = User::create([
+            'username'       => $request->email,
             'fullname'       => $request->name,
             'email'          => $request->email,
             'phone'          => $request->phone,
@@ -79,7 +80,6 @@ class AuthController extends Controller
             'otp_code'       => $otp,
             'otp_expires_at' => $expiresAt,
         ]);
-
         $this->sendOtpEmail($user->email, $otp, 'Xác thực tài khoản Royal Hotel');
 
         session(['pending_verify_email' => $user->email]);
