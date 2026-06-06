@@ -16,10 +16,10 @@
 <?php else: ?>
 <div class="table-responsive">
     <table class="table table-hover align-middle">
-        <thead class="table-dark">
+        <thead class="table-dark text-center">
             <tr>
                 <th>#</th>
-                <th>Phòng</th>
+                <th style="min-width:100px">Phòng</th>
                 <th>Nhận phòng</th>
                 <th>Trả phòng</th>
                 <th>Số khách</th>
@@ -42,32 +42,30 @@
                 $payBadge = $b['payment_status'] === 'paid' ? 'success' : 'warning';
             ?>
             <tr>
-                <td>#<?= $b['id'] ?></td>
-                <td>
-                    <div class="fw-semibold">Phòng <?= htmlspecialchars($b['room_number'] ?? '–') ?></div>
-                    <div class="text-muted small"><?= htmlspecialchars($b['type_name'] ?? '') ?></div>
+                <td class="text-center">#{{ $b->id }}</td>
+                <td class="text-center">
+                    @foreach($b->rooms as $room)
+                        <div class="fw-semibold">Phòng {{ $room->room_number }}</div>
+                        <div class="text-muted small">{{ $room->roomType->name ?? '' }}</div>
+                    @endforeach
                 </td>
-                <td><?= $b['check_in'] ?></td>
-                <td><?= $b['check_out'] ?></td>
-                <td class="text-center"><?= $b['adult_count'] ?> NL, <?= $b['child_count'] ?> TE</td>
-                <td class="fw-bold"><?= number_format($b['total_price'], 0, ',', '.') ?> VNĐ</td>
-                <td>
-                    <span class="badge bg-<?= $payBadge ?>">
-                        <?= $b['payment_status'] === 'paid' ? 'Đã thanh toán' : 'Chưa thanh toán' ?>
+                <td class="text-center">{{ \Carbon\Carbon::parse($b->check_in)->format('d/m/Y H:i') }}</td>
+                <td class="text-center">{{ \Carbon\Carbon::parse($b->check_out)->format('d/m/Y H:i') }}</td>
+                <td class="text-center">{{ $b->adult_count }} NL, {{ $b->child_count }} TE</td>
+                <td class="text-center fw-bold">{{ number_format($b->total_price, 0, ',', '.') }} VNĐ</td>
+                <td class="text-center">
+                    <span class="badge bg-{{ $payBadge }}">
+                        {{ $b->payment_status === 'paid' ? 'Đã thanh toán' : 'Chưa thanh toán' }}
                     </span>
                 </td>
-                <td>
-                    <span class="badge bg-<?= $badge ?>"><?= $b['status'] ?></span>
+                <td class="text-center">
+                    <span class="badge bg-{{ $badge }}">{{ $b->status }}</span>
                 </td>
-                <td>
-                    <?php if ($b['status'] === 'pending' && $b['payment_status'] !== 'paid'): ?>
-                    <div class="d-flex gap-1">
-                        <a href="{{ route('payment.show', $b->id) }}"
-                            class="btn btn-sm btn-outline-success">Thanh toán</a>
+                <td class="text-center">
+                    @if(in_array($b->status, ['pending', 'confirmed']))
                         <a href="{{ route('booking.cancel.show', $b->id) }}"
                             class="btn btn-sm btn-outline-danger">Huỷ</a>
-                    </div>
-                    <?php endif; ?>
+                    @endif
                 </td>
             </tr>
             <?php endforeach; ?>

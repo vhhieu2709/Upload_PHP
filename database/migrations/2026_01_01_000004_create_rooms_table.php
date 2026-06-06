@@ -14,12 +14,7 @@ return new class extends Migration
             $table->foreignId('room_type_id')->constrained('room_types')->onUpdate('cascade');
             $table->integer('floor');
             $table->enum('status', [
-                'available',    // Trống
-                'booked',       // Đã đặt
-                'occupied',     // Đang ở
-                'cleaning',     // Đang dọn
-                'maintenance',  // Bảo trì
-                'overdue',      // Quá hạn
+                'available', 'soon_to_checkin', 'occupied', 'soon_to_checkout', 'cleaning', 'maintenance',
             ])->default('available');
             $table->timestamps();
         });

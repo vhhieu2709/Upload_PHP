@@ -22,22 +22,23 @@ class ZaloPayService
 
     public function createPaymentUrl(Booking $booking): string
     {
-        $appTransId = date('ymd') . '_' . $booking->id;
+        $appTransId = date('ymd') . '_' . $booking->id . '_' . time();
         $appTime    = round(microtime(true) * 1000);
         $amount = (int) $booking->deposit_amount;
         $embedData  = json_encode(['booking_id' => $booking->id]);
         $items      = json_encode([]);
         $description = "Khách sạn - Thanh toán đặt phòng #{$booking->id}";
+        $appUser = 'hotel_' . ($booking->user_id ?? $booking->id);
 
-        $data = $this->appId . '|' . $appTransId . '|' . $booking->user_id
-             . '|' . $amount . '|' . $appTime . '|' . $embedData . '|' . $items;
+        $data = (int)$this->appId . '|' . $appTransId . '|' . $appUser
+           . '|' . $amount . '|' . $appTime . '|' . $embedData . '|' . $items;
 
         $mac = hash_hmac('sha256', $data, $this->key1);
 
         $response = Http::post($this->endpoint, [
-            'app_id'       => $this->appId,
+            'app_id' => (int) $this->appId,
             'app_trans_id' => $appTransId,
-            'app_user'     => 'hotel_' . $booking->user_id,
+            'app_user' => $appUser,
             'app_time'     => $appTime,
             'item'         => $items,
             'embed_data'   => $embedData,
@@ -48,6 +49,7 @@ class ZaloPayService
             'mac'          => $mac,
         ]);
 
+        \Log::info('ZaloPay: ' . json_encode($response->json()));
         return $response->json('order_url') ?? route('payment.error', $booking->id);
     }
 

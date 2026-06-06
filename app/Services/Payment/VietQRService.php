@@ -38,12 +38,17 @@ class VietQRService
      * Tạo QR data cho booking.
      * reference_code = "KS" + bookingId + random 4 ký tự (để khớp khi polling)
      */
-    public function generateQR(Booking $booking): array
+    public function generateQR(Booking $booking, ?int $amount = null): array
     {
         // Tạo nội dung chuyển khoản unique
         $existing = \App\Models\PaymentLog::where('booking_id', $booking->id)
-            ->where('gateway', 'vietqr')->where('status', 'pending')->first();
-
+            ->where('gateway', 'vietqr')
+            ->whereNotIn('status', ['failed'])
+            ->whereNull('transaction_id')
+            ->latest()
+            ->first();
+        
+        $amount = $amount ?? (int) $booking->deposit_amount;
         if ($existing) {
             $referenceCode = $existing->reference_code;
         } else {
@@ -52,13 +57,12 @@ class VietQRService
                 'booking_id'     => $booking->id,
                 'gateway'        => 'vietqr',
                 'reference_code' => $referenceCode,
-                'amount'         => $booking->deposit_amount,
+                'amount' => $amount,
                 'status'         => 'pending',
             ]);
         }
 
         // URL ảnh QR từ VietQR CDN (không cần API key)
-        $amount  = (int) $booking->deposit_amount;
         $qrUrl   = "https://img.vietqr.io/image/{$this->bankBin}-{$this->accountNo}-compact2.png"
             . "?amount={$amount}"
             . "&addInfo=" . urlencode($referenceCode)
@@ -75,15 +79,102 @@ class VietQRService
     }
 
     /**
-     * Polling: gọi SePay API để tìm giao dịch mới khớp với booking.
-     * Trả về transaction info nếu tìm thấy, null nếu chưa có.
+     * Tạo QR data cho thanh toán khi trả phòng (checkout) tại lễ tân.
+     * Dùng prefix "CO" (check-out) để phân biệt với QR đặt cọc.
      */
+    public function generateCheckoutQR(Booking $booking, int $amount): array
+    {
+        $existing = \App\Models\PaymentLog::where('booking_id', $booking->id)
+            ->where('gateway', 'vietqr')
+            ->where('status', 'pending')
+            ->where('reference_code', 'like', 'CO%')
+            ->first();
+
+        if ($existing) {
+            $referenceCode = $existing->reference_code;
+        } else {
+            $referenceCode = 'CO' . $booking->id . strtoupper(Str::random(4));
+            \App\Models\PaymentLog::create([
+                'booking_id'     => $booking->id,
+                'gateway'        => 'vietqr',
+                'reference_code' => $referenceCode,
+                'amount'         => $amount,
+                'status'         => 'pending',
+            ]);
+        }
+
+        $qrUrl = "https://img.vietqr.io/image/{$this->bankBin}-{$this->accountNo}-compact2.png"
+            . "?amount={$amount}"
+            . "&addInfo=" . urlencode($referenceCode)
+            . "&accountName=" . urlencode($this->accountName);
+
+        return [
+            'qr_url'         => $qrUrl,
+            'reference_code' => $referenceCode,
+            'account_no'     => $this->accountNo,
+            'account_name'   => $this->accountName,
+            'bank_bin'       => $this->bankBin,
+            'amount'         => $amount,
+        ];
+    }
+
+    /**
+     * Polling dành riêng cho checkout: tìm giao dịch khớp mã CO...
+     */
+    public function checkCheckoutTransaction(Booking $booking): ?array
+    {
+        $log = \App\Models\PaymentLog::where('booking_id', $booking->id)
+            ->where('gateway', 'vietqr')
+            ->where('status', 'pending')
+            ->where('reference_code', 'like', 'CO%')
+            ->latest()
+            ->first();
+
+        if (!$log || !$log->reference_code) return null;
+
+        try {
+            $response = Http::withToken($this->sePayToken)
+                ->timeout(5)
+                ->get("{$this->sePayApiUrl}/transactions/list", [
+                    'transaction_content' => $log->reference_code,
+                    'limit'               => 10,
+                ]);
+
+            if (!$response->successful()) return null;
+
+            $transactions = $response->json('transactions', []);
+            if (empty($transactions)) return null;
+
+            $tx = collect($transactions)->first(function ($t) use ($log) {
+                return str_contains($t['transaction_content'] ?? '', $log->reference_code);
+            });
+
+            if (!$tx) return null;
+
+            $received = (float) ($tx['amount_in'] ?? 0);
+            if (abs($received - $log->amount) > 1000) return null;
+
+            $log->update([
+                'status'         => 'success',
+                'transaction_id' => $tx['id'],
+                'raw_response'   => $tx,
+            ]);
+
+            return $tx;
+
+        } catch (\Exception $e) {
+            \Log::warning("VietQR checkout polling error for booking #{$booking->id}: " . $e->getMessage());
+            return null;
+        }
+    }
+    //  * Trả về transaction info nếu tìm thấy, null nếu chưa có.
+    //  */
     public function checkTransaction(Booking $booking): ?array
     {
         // Lấy reference_code từ payment_log pending gần nhất
         $log = \App\Models\PaymentLog::where('booking_id', $booking->id)
             ->where('gateway', 'vietqr')
-            ->where('status', 'pending')
+            ->whereNull('transaction_id')
             ->latest()
             ->first();
 
@@ -113,7 +204,7 @@ class VietQRService
 
             // Kiểm tra số tiền khớp (±1000đ để tránh lỗi làm tròn)
             $received = (float) ($tx['amount_in'] ?? 0);
-            if (abs($received - $booking->deposit_amount) > 1000) return null;
+            if (abs($received - $log->amount) > 1000) return null;
 
             // Cập nhật log thành success
             $log->update([

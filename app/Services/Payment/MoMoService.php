@@ -29,9 +29,9 @@ class MoMoService
 
     public function createPaymentUrl(Booking $booking): string
     {
-        $orderId    = (string) $booking->id;
+        $orderId    = (string) $booking->id . '_' . time();
         $requestId  = $this->partnerCode . time();
-        $amount = (int) $booking->deposit_amount;
+        $amount = (int) ($booking->deposit_amount > 0 ? $booking->deposit_amount : $booking->total_price);
         $orderInfo  = "Thanh toán đặt phòng #" . $booking->id;
         $requestType = 'payWithMethod';
         $extraData  = '';
@@ -64,7 +64,7 @@ class MoMoService
             'requestType' => $requestType,
             'signature'   => $signature,
         ]);
-
+        \Log::info('MoMo: ' . json_encode($response->json()));
         return $response->json('payUrl') ?? route('payment.error', $booking->id);
     }
 

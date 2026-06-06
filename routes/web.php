@@ -14,6 +14,7 @@ use App\Http\Controllers\AuthController;
 Route::get('/',           [HomeController::class, 'index'])->name('home');
 Route::get('/about',      [HomeController::class, 'about'])->name('about');
 Route::get('/contact',    [HomeController::class, 'contact'])->name('contact');
+Route::get('/payment/momo/return', [PaymentController::class, 'momoReturn'])->name('payment.momo.return');
 
 // Phòng
 Route::get('/rooms',              [RoomController::class, 'index'])->name('rooms.index');
@@ -70,11 +71,21 @@ Route::middleware(['auth.custom', 'verified.custom'])->group(function () {
 // RECEPTIONIST + ADMIN
 // ============================================================
 Route::middleware(['auth.custom', 'role:receptionist,admin'])->prefix('staff')->name('staff.')->group(function () {
-    Route::get('/bookings',                  [BookingController::class, 'staffIndex'])->name('bookings');
-    Route::patch('/bookings/{id}/confirm',   [BookingController::class, 'confirm'])->name('bookings.confirm');
-    Route::patch('/bookings/{id}/checkin',   [BookingController::class, 'checkIn'])->name('bookings.checkin');
-    Route::patch('/bookings/{id}/checkout',  [BookingController::class, 'checkOut'])->name('bookings.checkout');
-    Route::patch('/bookings/{id}/refund',    [CancellationController::class, 'processRefund'])->name('bookings.refund');
+    Route::get('/bookings',                          [BookingController::class, 'staffIndex'])->name('bookings');
+    Route::patch('/bookings/{id}/confirm',           [BookingController::class, 'confirm'])->name('bookings.confirm');
+    Route::patch('/bookings/{id}/checkin',           [BookingController::class, 'checkIn'])->name('bookings.checkin');
+    Route::patch('/bookings/{id}/checkout',          [BookingController::class, 'checkOut'])->name('bookings.checkout');
+    Route::patch('/bookings/{id}/refund',            [CancellationController::class, 'processRefund'])->name('bookings.refund');
+    Route::get('/bookings/{id}/vietqr', [PaymentController::class, 'staffVietQR'])->name('bookings.vietqr');
+    Route::get('/bookings/{id}/check-status', [PaymentController::class, 'staffCheckStatus'])->name('bookings.check-status');
+    Route::get('/bookings/{id}/checkout-success', [PaymentController::class, 'checkoutSuccess'])->name('bookings.checkout-success');
+
+    // AJAX — sơ đồ phòng
+    Route::get('/room/{id}/current-booking',         [BookingController::class, 'currentBooking'])->name('room.currentBooking');
+    Route::post('/room/{id}/checkin',                [BookingController::class, 'checkInRoom'])->name('room.checkin');
+    Route::post('/room/{id}/status',                 [BookingController::class, 'updateRoomStatus'])->name('room.status');
+    Route::post('/bookings/{id}/checkout',           [BookingController::class, 'checkOutRoom'])->name('bookings.checkout-room');
+    Route::post('/bookings/{id}/checkout-payment', [PaymentController::class, 'staffCheckoutPayment'])->name('bookings.checkout-payment');
 });
 
 Route::prefix('webhook')->name('webhook.')->group(function () {

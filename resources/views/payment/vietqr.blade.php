@@ -106,7 +106,7 @@
 
     {{-- Actions --}}
     <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
-        <a href="{{ route('payment.show', $booking->id) }}" class="btn btn-outline-secondary">
+        <a href="{{ route('payment.form', $booking->id) }}" class="btn btn-outline-secondary">
             ← Đổi phương thức
         </a>
     </div>

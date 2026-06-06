@@ -139,6 +139,7 @@ class BookingController extends Controller
     {
         $bookings = Booking::with('rooms.roomType')
             ->where('user_id', Auth::id())
+            ->where('payment_status', 'paid') // chỉ lấy đã thanh toán
             ->orderByDesc('created_at')
             ->get();
 
@@ -196,7 +197,7 @@ class BookingController extends Controller
         }
 
         $booking->update([
-            'status'           => 'occupied',
+            'status'           => 'checked_in',
             'actual_check_in'  => now(),
         ]);
 
@@ -215,7 +216,7 @@ class BookingController extends Controller
     {
         $booking = Booking::findOrFail($id);
 
-        if ($booking->status !== 'occupied') {
+        if ($booking->status !== 'checked_in') {
             return back()->with('error', 'Booking phải ở trạng thái "đang ở" mới có thể check-out.');
         }
 
@@ -230,5 +231,92 @@ class BookingController extends Controller
         }
 
         return back()->with('success', "Check-out thành công cho booking #{$booking->id}. Phòng đã chuyển sang trạng thái dọn dẹp.");
+    }
+    /**
+     * Lấy booking hiện tại đang occupied của 1 phòng (AJAX).
+     */
+    public function currentBooking(int $roomId)
+    {
+        $booking = Booking::with('rooms')
+            ->whereHas('rooms', fn($q) => $q->where('rooms.id', $roomId))
+            ->whereIn('status', ['checked_in', 'occupied', 'soon_to_checkout'])
+            ->first();
+
+        return response()->json(['booking' => $booking]);
+    }
+
+    /**
+     * Lễ tân check-in phòng qua AJAX.
+     * Tìm booking confirmed của phòng → chuyển sang occupied.
+     */
+    public function checkInRoom(int $roomId)
+    {
+        $room = Room::findOrFail($roomId);
+
+        $booking = Booking::whereHas('rooms', fn($q) => $q->where('rooms.id', $roomId))
+            ->where('status', 'confirmed')
+            ->first();
+
+        if (!$booking) {
+            return response()->json(['success' => false, 'message' => 'Không tìm thấy booking confirmed cho phòng này.']);
+        }
+
+        $booking->update([
+            'status'          => 'checked_in',
+            'actual_check_in' => now(),
+        ]);
+
+        $room->update(['status' => Room::STATUS_OCCUPIED]);
+
+        return response()->json(['success' => true, 'message' => "Check-in phòng {$room->room_number} thành công."]);
+    }
+
+    /**
+     * Lễ tân checkout phòng qua AJAX + ghi nhận thanh toán còn lại.
+     */
+    public function checkOutRoom(Request $request, int $bookingId)
+    {
+        $booking = Booking::with('rooms')->findOrFail($bookingId);
+
+        if (!in_array($booking->status, ['occupied', 'soon_to_checkout', 'checked_in'])) {
+            return response()->json(['success' => false, 'message' => 'Booking không ở trạng thái occupied.']);
+        }
+
+        $booking->update([
+            'status'           => 'completed',
+            'actual_check_out' => now(),
+            'payment_status'   => 'paid',
+            'payment_method'   => $request->input('payment_method', 'cash'),
+        ]);
+
+        foreach ($booking->rooms as $room) {
+            $room->update(['status' => Room::STATUS_CLEANING]);
+        }
+
+        return response()->json(['success' => true, 'message' => "Check-out booking #{$booking->id} thành công. Phòng đang dọn dẹp."]);
+    }
+
+    /**
+     * Cập nhật trạng thái phòng thủ công (available, cleaning, maintenance).
+     */
+    public function updateRoomStatus(Request $request, int $roomId)
+    {
+        $room = Room::findOrFail($roomId);
+        $newStatus = $request->input('status');
+
+        $allowed = ['available', 'cleaning', 'maintenance'];
+        if (!in_array($newStatus, $allowed)) {
+            return response()->json(['success' => false, 'message' => 'Trạng thái không hợp lệ.']);
+        }
+
+        $room->update(['status' => $newStatus]);
+
+        $statusText = match($newStatus) {
+            'available'   => 'Đang trống',
+            'cleaning'    => 'Đang dọn',
+            'maintenance' => 'Bảo trì',
+        };
+
+        return response()->json(['success' => true, 'message' => "Phòng {$room->room_number} → {$statusText}."]);
     }
 }

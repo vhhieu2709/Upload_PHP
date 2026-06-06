@@ -269,28 +269,144 @@ class PaymentController extends Controller
 
     // ── Core: xác nhận thanh toán thành công ─────────────
     private function confirmPayment(Booking $booking, string $gateway, string $transactionId, array $rawData): void
-{
-    \DB::transaction(function () use ($booking, $gateway, $transactionId, $rawData) {
-        $booking = Booking::lockForUpdate()->find($booking->id);
-        if ($booking->isPaid()) return;
+    {
+        \DB::transaction(function () use ($booking, $gateway, $transactionId, $rawData) {
+            $booking = Booking::lockForUpdate()->find($booking->id);
+            if ($booking->isPaid()) return;
 
-        PaymentLog::create([
-            'booking_id'     => $booking->id,
-            'gateway'        => $gateway,
-            'transaction_id' => $transactionId,
-            'amount'         => $booking->total_price,
-            'status'         => 'success',
-            'raw_response'   => $rawData,
-        ]);
+            PaymentLog::create([
+                'booking_id'     => $booking->id,
+                'gateway'        => $gateway,
+                'transaction_id' => $transactionId,
+                'amount'         => $booking->total_price,
+                'status'         => 'success',
+                'raw_response'   => $rawData,
+            ]);
 
-        $booking->update([
-            'payment_status' => 'paid',
-            'status'         => 'confirmed',
-        ]);
+            $booking->update([
+                'payment_status' => 'paid',
+                'status'         => 'confirmed',
+            ]);
 
-        foreach ($booking->rooms as $room) {
-            $room->update(['status' => Room::STATUS_BOOKED]);
+            foreach ($booking->rooms as $room) {
+                $room->update(['status' => 'soon_to_checkin']);
+            }
+        });
+    }
+    public function staffCheckoutPayment(Request $request, int $bookingId)
+    {
+        $booking = Booking::with('rooms')->findOrFail($bookingId);
+        $method  = $request->input('payment_method');
+
+        // Tiền mặt — xác nhận luôn
+        if ($method === 'cash') {
+            \DB::transaction(function () use ($booking) {
+                $booking->update([
+                    'status'           => 'completed',
+                    'actual_check_out' => now(),
+                    'payment_status'   => 'paid',
+                    'payment_method'   => 'cash',
+                ]);
+                foreach ($booking->rooms as $room) {
+                    $room->update(['status' => Room::STATUS_CLEANING]);
+                }
+            });
+            return response()->json(['success' => true, 'message' => "Checkout booking #{$booking->id} thành công."]);
         }
-    });
+
+        // Cổng thanh toán — chỉ lưu phương thức, CHƯA đổi trạng thái
+        // Trạng thái sẽ được cập nhật sau khi thanh toán thực sự thành công
+        $booking->update([
+            'payment_method' => $method,
+        ]);
+
+        $url = match($method) {
+            'momo'    => $this->momo->createPaymentUrl($booking),
+            'zalopay' => $this->zalopay->createPaymentUrl($booking),
+            'vnpay'   => $this->vnpay->createPaymentUrl($booking),
+            'vietqr'  => route('staff.bookings.vietqr', $booking->id),
+            default   => null,
+        };
+
+        if (!$url) {
+            return response()->json(['success' => false, 'message' => 'Phương thức không hợp lệ.']);
+        }
+
+        return response()->json(['success' => true, 'redirect' => $url]);
+    }
+    public function staffVietQR(int $bookingId)
+    {
+        $booking   = Booking::with('rooms.roomType')->findOrFail($bookingId);
+        $remaining = (int) ($booking->total_price - $booking->deposit_amount);
+        $qrData    = $this->vietqr->generateCheckoutQR($booking, $remaining);
+        return view('payment.vietqr_checkout', compact('booking', 'qrData', 'remaining'));
+    }
+
+    /**
+     * AJAX polling cho staff checkout VietQR — gọi mỗi 5 giây.
+     * Khi paid → hoàn tất checkout, đổi trạng thái phòng, trả redirect URL.
+     */
+    public function staffCheckStatus(int $bookingId): JsonResponse
+    {
+        $booking = Booking::with('rooms')->findOrFail($bookingId);
+
+        if ($booking->status === 'completed' && $booking->payment_status === 'paid') {
+            return response()->json([
+                'status'       => 'paid',
+                'redirect_url' => route('staff.bookings.checkout-success', $bookingId),
+            ]);
+        }
+
+        $transaction = $this->vietqr->checkCheckoutTransaction($booking);
+
+        if ($transaction) {
+            \DB::transaction(function () use ($booking, $transaction) {
+                $booking = Booking::lockForUpdate()->find($booking->id);
+                if ($booking->status === 'completed') return;
+
+                \App\Models\PaymentLog::create([
+                    'booking_id'     => $booking->id,
+                    'gateway'        => 'vietqr',
+                    'transaction_id' => $transaction['id'],
+                    'amount'         => $booking->total_price - $booking->deposit_amount,
+                    'status'         => 'success',
+                    'raw_response'   => $transaction,
+                ]);
+
+                $booking->update([
+                    'status'           => 'completed',
+                    'actual_check_out' => now(),
+                    'payment_status'   => 'paid',
+                ]);
+
+                foreach ($booking->rooms as $room) {
+                    $room->update(['status' => Room::STATUS_CLEANING]);
+                }
+            });
+
+            return response()->json([
+                'status'       => 'paid',
+                'redirect_url' => route('staff.bookings.checkout-success', $bookingId),
+            ]);
+        }
+
+        return response()->json(['status' => 'pending']);
+    }
+
+    /**
+     * Trang xác nhận checkout thành công (dành cho staff).
+     */
+    public function checkoutSuccess(int $bookingId)
+    {
+        $booking = Booking::with('rooms.roomType')->findOrFail($bookingId);
+        return view('payment.checkout_success', compact('booking'));
+    }
+    public function momoReturn(Request $request)
+{
+    $bookingId = $request->input('orderId');
+    if ($request->input('resultCode') == 0) {
+        return redirect()->route('payment.success', $bookingId);
+    }
+    return redirect()->route('payment.error', $bookingId);
 }
 }

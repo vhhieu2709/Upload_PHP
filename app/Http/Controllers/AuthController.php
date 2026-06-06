@@ -43,7 +43,11 @@ class AuthController extends Controller
 
         $this->loginUser($user);
 
-        return redirect()->intended(route('home'))
+        $redirect = in_array($user->role, ['receptionist', 'admin'])
+            ? route('staff.bookings')
+            : route('home');
+
+        return redirect($redirect)
             ->with('success', 'Đăng nhập thành công. Chào mừng, ' . $user->fullname . '!');
     }
 

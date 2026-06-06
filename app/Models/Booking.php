@@ -60,7 +60,7 @@ class Booking extends Model
         $isWeekend  = in_array($checkIn->dayOfWeek, [Carbon::SATURDAY, Carbon::SUNDAY]);
         $isHoliday  = Holiday::isHoliday($checkIn);
 
-        return ($isWeekend || $isHoliday) ? 3 : 5;
+        return ($isWeekend || $isHoliday) ? 7 : 5;
     }
 
     /**

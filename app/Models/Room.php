@@ -9,7 +9,7 @@ class Room extends Model
     protected $fillable = ['room_number', 'room_type_id', 'floor', 'status'];
 
     const STATUS_AVAILABLE   = 'available';
-    const STATUS_BOOKED      = 'booked';
+    const STATUS_BOOKED      = 'soon_to_checkin';
     const STATUS_OCCUPIED    = 'occupied';
     const STATUS_CLEANING    = 'cleaning';
     const STATUS_MAINTENANCE = 'maintenance';
