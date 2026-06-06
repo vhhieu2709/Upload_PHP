@@ -140,7 +140,7 @@ class BookingController extends Controller
         $bookings = Booking::with('rooms.roomType')
             ->where('user_id', Auth::id())
             ->where('payment_status', 'paid') // chỉ lấy đã thanh toán
-            ->orderByDesc('created_at')
+            ->orderByDesc((new Booking)->getCreatedAtColumn())
             ->get();
 
         return view('booking.my_bookings', compact('bookings'));
@@ -158,7 +158,7 @@ class BookingController extends Controller
         $status = $request->input('status');
 
         $query = Booking::with(['rooms.roomType', 'user'])
-            ->orderByDesc('created_at');
+            ->orderByDesc((new Booking)->getCreatedAtColumn());
 
         if ($status) {
             $query->where('status', $status);
@@ -249,9 +249,39 @@ class BookingController extends Controller
      * Lễ tân check-in phòng qua AJAX.
      * Tìm booking confirmed của phòng → chuyển sang occupied.
      */
-    public function checkInRoom(int $roomId)
+    public function checkInRoom(Request $request, int $roomId)
     {
         $room = Room::findOrFail($roomId);
+
+        // Hỗ trợ check-in khách vãng lai
+        if ($request->input('is_walkin')) {
+            $checkOutDate = $request->input('check_out', now()->addDay()->format('Y-m-d'));
+            $nights = max(1, Carbon::parse($checkOutDate)->diffInDays(now()->startOfDay()));
+            $totalPrice = ($room->roomType->price ?? 0) * $nights;
+
+            // Lấy ID tài khoản người dùng đăng nhập hiện tại nếu có
+            $userId = session('user_id');
+
+            $booking = Booking::create([
+                'user_id'         => $userId,
+                'customer_name'   => $request->input('customer_name'),
+                'customer_email'  => $request->input('customer_email'),
+                'customer_phone'  => $request->input('customer_phone'),
+                'check_in'        => now()->format('Y-m-d'),
+                'check_out'       => $checkOutDate,
+                'actual_check_in' => now(),
+                'adult_count'     => (int) $request->input('adult_count', 1),
+                'child_count'     => (int) $request->input('child_count', 0),
+                'total_price'     => $totalPrice,
+                'payment_status'  => 'pending',
+                'status'          => 'checked_in',
+            ]);
+
+            $booking->rooms()->attach($room->id);
+            $room->update(['status' => Room::STATUS_OCCUPIED]);
+
+            return response()->json(['success' => true, 'message' => "Check-in khách vãng lai thành công cho phòng {$room->room_number}."]);
+        }
 
         $booking = Booking::whereHas('rooms', fn($q) => $q->where('rooms.id', $roomId))
             ->where('status', 'confirmed')

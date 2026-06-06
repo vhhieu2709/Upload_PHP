@@ -138,7 +138,7 @@ class AuthController extends Controller
         session()->forget('pending_verify_email');
         $this->loginUser($user);
 
-        return redirect()->route('home')
+        return redirect()->intended(route('home'))
             ->with('success', 'Tài khoản đã được xác thực. Chào mừng, ' . $user->fullname . '!');
     }
 

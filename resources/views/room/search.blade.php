@@ -176,7 +176,11 @@
     align-self: stretch;
     margin: 0 4px;
 }
-
+@media (min-width: 768px) {
+    .border-md-end {
+        border-right: 1px solid var(--border) !important;
+    }
+}
 /* ══════════════════════════════════════════
    RESULTS BAR
 ══════════════════════════════════════════ */
@@ -665,10 +669,19 @@
     padding: 2px 10px;
     border-radius: 99px;
     border: 1px solid rgba(201,168,76,.3);
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
     margin: 2px 2px 0 0;
 }
-
+.cart-label-badge i {
+    cursor: pointer;
+    transition: color .15s;
+    font-size: .85rem;
+}
+.cart-label-badge i:hover {
+    color: #ff6b6b !important;
+}
 .cart-total {
     font-family: 'Cormorant Garamond', serif;
     font-size: 1.2rem;
@@ -797,7 +810,7 @@ body { background: var(--cream) !important; }
         <div class="row g-3 align-items-end">
 
             <!-- Ngày nhận phòng -->
-            <div class="col-md-3">
+            <div class="col-md-3 border-md-end pe-md-4">
                 <div class="search-field-label">
                     <i class="bi bi-box-arrow-in-right"></i>Ngày nhận phòng
                 </div>
@@ -809,10 +822,9 @@ body { background: var(--cream) !important; }
                 </div>
             </div>
 
-            <div class="search-divider d-none d-md-block"></div>
 
             <!-- Ngày trả phòng -->
-            <div class="col-md-3">
+            <div class="col-md-3 border-md-end pe-md-4">
                 <div class="search-field-label">
                     <i class="bi bi-box-arrow-right"></i>Ngày trả phòng
                 </div>
@@ -823,8 +835,6 @@ body { background: var(--cream) !important; }
                     <i class="bi bi-exclamation-circle"></i><span></span>
                 </div>
             </div>
-
-            <div class="search-divider d-none d-md-block"></div>
 
             <!-- Người lớn -->
             <div class="col-md-2 col-6">
@@ -889,7 +899,7 @@ body { background: var(--cream) !important; }
                 <!-- Lọc giá -->
                 <div class="filter-section-label">Khoảng giá (VNĐ/đêm)</div>
                 <?php
-                $allPrices = array_column($roomTypes, 'price');
+                $allPrices = $roomTypes->pluck('price')->all();
                 $minPrice  = $allPrices ? (int)min($allPrices) : 0;
                 $maxPrice  = $allPrices ? (int)max($allPrices) : 10000000;
                 $filterMin = (int)floor($minPrice / 100000) * 100000;
@@ -974,7 +984,7 @@ body { background: var(--cream) !important; }
 
         <!-- Form giỏ phòng -->
         <form id="multiBookingForm" method="GET"
-                action="{{ route('booking.create') }}">    value="create">
+                action="{{ route('booking.create') }}">   
             <input type="hidden" name="check_in"   value="<?= htmlspecialchars($checkIn) ?>">
             <input type="hidden" name="check_out"  value="<?= htmlspecialchars($checkOut) ?>">
             <input type="hidden" name="adults"     value="<?= (int)$adults ?>">
@@ -1004,12 +1014,13 @@ body { background: var(--cream) !important; }
             </div>
 
             <!-- Room type cards -->
-            <?php foreach ($roomTypes as $i => $type):
-                $typeId     = $type['room_type_id'];
+            <?php 
+            foreach ($roomTypes as $i => $type):
+                $typeId     = $type['id'];
                 $imgSrc     = url('/') . '/images/rooms/' . $typeId . '.jpg';
                 $imgFallback= url('/') . '/images/rooms/default.jpg';
                 $roomCount  = count($type['available_rooms']);
-                $amenityIds = array_column($type['amenities'] ?? [], 'id');
+                $amenityIds = collect($type['amenities'] ?? [])->pluck('id')->all();
             ?>
             <div class="room-card room-type-card <?= $i === 0 ? 'open' : '' ?>"
                  data-price="<?= (float)$type['price'] ?>"
@@ -1026,6 +1037,28 @@ body { background: var(--cream) !important; }
                         <div>
                             <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:6px;margin-bottom:4px">
                                 <div class="room-type-name"><?= htmlspecialchars($type['type_name']) ?></div>
+                                <div class="rc-rating" style="font-size: 0.88rem; display: flex; align-items: center; gap: 4px; margin-top: 2px; margin-bottom: 6px; width: 100%;">
+                                    <?php
+                                    $avgRating = $type->averageRating();
+                                    $fullStars = floor($avgRating);
+                                    $halfStar = ($avgRating - $fullStars) >= 0.5 ? 1 : 0;
+                                    $emptyStars = 5 - $fullStars - $halfStar;
+                                    for ($i = 0; $i < $fullStars; $i++) {
+                                        echo '<i class="bi bi-star-fill" style="color: #C9A84C;"></i>';
+                                    }
+                                    if ($halfStar) {
+                                        echo '<i class="bi bi-star-half" style="color: #C9A84C;"></i>';
+                                    }
+                                    for ($i = 0; $i < $emptyStars; $i++) {
+                                        echo '<i class="bi bi-star" style="color: #ccc;"></i>';
+                                    }
+                                    if ($avgRating > 0) {
+                                        echo ' <span class="ms-1 text-muted fw-semibold" style="font-size: 0.82rem;">' . number_format($avgRating, 1) . '</span>';
+                                    } else {
+                                        echo ' <span class="ms-1 text-muted" style="font-size: 0.78rem;">(Chưa có đánh giá)</span>';
+                                    }
+                                    ?>
+                                </div>
                                 <span class="badge-rooms"><?= $roomCount ?> phòng trống</span>
                             </div>
                             <div class="room-meta">
@@ -1037,7 +1070,7 @@ body { background: var(--cream) !important; }
                         </div>
                         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-top:4px">
                             <div>
-                                <?php foreach (array_slice($type['amenities'] ?? [], 0, 5) as $am): ?>
+                                <?php foreach (collect($type['amenities'] ?? [])->take(5) as $am): ?>
                                 <span class="amenity-tag"><?= htmlspecialchars($am['amenity_name']) ?></span>
                                 <?php endforeach; ?>
                                 <?php if (count($type['amenities'] ?? []) > 5): ?>
@@ -1045,7 +1078,7 @@ body { background: var(--cream) !important; }
                                 <?php endif; ?>
                             </div>
                             <!-- Nút xem chi tiết — stopPropagation để không toggle accordion -->
-                            <a href="{{ route('rooms.detail', $type['room_type_id']) }}?check_in={{ urlencode($checkIn) }}&check_out={{ urlencode($checkOut) }}&adults={{ $adults }}&children={{ $children }}"
+                            <a href="{{ route('rooms.detail', $type['id']) }}?check_in={{ urlencode($checkIn) }}&check_out={{ urlencode($checkOut) }}&adults={{ $adults }}&children={{ $children }}"
                                class="btn-detail"
                                onclick="event.stopPropagation()">
                                 <i class="bi bi-eye"></i>Xem chi tiết
@@ -1066,6 +1099,7 @@ body { background: var(--cream) !important; }
                         $displayRooms = $type['all_rooms'] ?? $type['available_rooms'] ?? [];
                         foreach ($displayRooms as $room): 
                             $isTaken = $room['is_booked'] ?? false;
+                            if ($isTaken) continue; // Ẩn các phòng đã đặt
                         ?>
                         <div class="room-chip room-chip-btn <?= $isTaken ? 'taken' : '' ?>"
                             id="chip-<?= $room['id'] ?>"
@@ -1075,6 +1109,7 @@ body { background: var(--cream) !important; }
                             data-max-guests="<?= (int)$type['max_guests'] ?>"
                             data-max-adults="<?= (int)$type['max_adults'] ?>"
                             data-max-children="<?= (int)$type['max_children'] ?>"
+                            data-room-type-name="<?= htmlspecialchars($type['type_name']) ?>"
                             <?= $isTaken ? 'title="Phòng đã được đặt"' : 'onclick="toggleRoom(this)"' ?>>
                             <span class="chip-num">P.<?= htmlspecialchars($room['room_number']) ?></span>
                             <span class="chip-floor">Tầng <?= $room['floor'] ?></span>
@@ -1094,6 +1129,7 @@ body { background: var(--cream) !important; }
                         <div style="display:flex;flex-wrap:wrap;gap:8px">
                             <?php foreach ($displayRooms as $room): 
                                 $isTaken = $room['is_booked'] ?? false;
+                                 if ($isTaken) continue; // Ẩn các phòng đã đặt
                             ?>
                             <button type="button" class="btn-quick <?= $isTaken ? 'taken' : '' ?>"
                                     data-href="{{ route('booking.create') }}?room_id={{ $room['id'] }}&check_in={{ urlencode($checkIn) }}&check_out={{ urlencode($checkOut) }}&adults={{ $adults }}&children={{ $children }}"
@@ -1101,6 +1137,7 @@ body { background: var(--cream) !important; }
                                     data-max-adults="<?= (int)$type['max_adults'] ?>"
                                     data-max-children="<?= (int)$type['max_children'] ?>"
                                     data-room-label="Phòng <?= htmlspecialchars($room['room_number']) ?>"
+                                    data-room-type-name="<?= htmlspecialchars($type['type_name']) ?>"
                                     <?= $isTaken ? 'disabled title="Phòng đã được đặt"' : 'onclick="quickBook(this)"' ?>>
                                 <i class="bi <?= $isTaken ? 'bi-x-circle' : 'bi-calendar-check' ?>"></i>
                                 P.<?= htmlspecialchars($room['room_number']) ?>
@@ -1243,6 +1280,29 @@ const neededChildren = <?= (int)($children ?? 0) ?>;
 const neededGuests = neededAdults + neededChildren;
 const selected = {};
 
+// Helper to save cart to sessionStorage
+function saveCart() {
+    sessionStorage.setItem('booking_cart', JSON.stringify({
+        check_in: '<?= $checkIn ?? '' ?>',
+        check_out: '<?= $checkOut ?? '' ?>',
+        selected: selected
+    }));
+}
+
+// Load saved cart from sessionStorage if the dates match
+const savedCartJson = sessionStorage.getItem('booking_cart');
+if (savedCartJson) {
+    try {
+        const savedCart = JSON.parse(savedCartJson);
+        if (savedCart.check_in === '<?= $checkIn ?? '' ?>' && savedCart.check_out === '<?= $checkOut ?? '' ?>') {
+            Object.assign(selected, savedCart.selected || {});
+        } else {
+            sessionStorage.removeItem('booking_cart');
+        }
+    } catch (e) {
+        console.error('Error parsing saved cart:', e);
+    }
+}
 function toggleRoom(chip) {
     const id = chip.dataset.roomId;
     if (selected[id]) {
@@ -1254,10 +1314,12 @@ function toggleRoom(chip) {
             price: parseFloat(chip.dataset.price),
             maxGuests: parseInt(chip.dataset.maxGuests),
             maxAdults: parseInt(chip.dataset.maxAdults || 0),
-            maxChildren: parseInt(chip.dataset.maxChildren || 0)
+            maxChildren: parseInt(chip.dataset.maxChildren || 0),
+            roomTypeName: chip.dataset.roomTypeName || 'phòng'
         };
         chip.classList.add('selected');
     }
+    saveCart();
     updateCartBar();
 }
 
@@ -1282,12 +1344,12 @@ function updateCartBar() {
     // Labels
     const labelsEl = document.getElementById('cartLabels');
     labelsEl.innerHTML = ids.map(id =>
-        `<span class="cart-label-badge">${selected[id].label}</span>`
+        `<span class="cart-label-badge">${selected[id].label} <i class="bi bi-x" onclick="removeCartItem('${id}')"></i></span>`
     ).join('');
 
     // Capacity
     const capEl = document.getElementById('cartCapacity');
-    capEl.innerHTML = `<i class="bi bi-info-circle-fill me-1"></i>Sức chứa đã chọn: ${totalMaxGuests} khách (Người lớn: ${totalMaxAdults}/${neededAdults}, Trẻ em: ${totalMaxChildren}/${neededChildren})`;
+    capEl.innerHTML = '';
     capEl.className = 'cart-capacity ok';
 
     // Total price
@@ -1305,7 +1367,18 @@ function clearCart() {
         const chip = document.getElementById('chip-' + id);
         if (chip) chip.classList.remove('selected');
     });
+    sessionStorage.removeItem('booking_cart');
     updateCartBar();
+}
+
+function removeCartItem(id) {
+    if (selected[id]) {
+        delete selected[id];
+        const chip = document.getElementById('chip-' + id);
+        if (chip) chip.classList.remove('selected');
+        saveCart();
+        updateCartBar();
+    }
 }
 
 document.getElementById('multiBookingForm')?.addEventListener('submit', function(e) {
@@ -1320,7 +1393,19 @@ document.getElementById('multiBookingForm')?.addEventListener('submit', function
     const totalMaxGuests = ids.reduce((a, id) => a + selected[id].maxGuests, 0);
 
     if (totalMaxAdults > neededAdults || totalMaxChildren > neededChildren || totalMaxGuests > neededGuests) {
-        if (!confirm(`Bạn đang đặt ${ids.length} phòng với tổng sức chứa cho ${totalMaxAdults} người lớn. Bạn có chắc chắn muốn đặt số lượng phòng này cho ${neededAdults} người lớn và ${neededChildren} trẻ em không?`)) {
+       const counts = {};
+        ids.forEach(id => {
+            const name = selected[id].roomTypeName || 'phòng';
+            counts[name] = (counts[name] || 0) + 1;
+        });
+        const parts = Object.keys(counts).map(name => `${counts[name]} ${name.toLowerCase()}`);
+        let roomsDescription = "";
+        if (parts.length === 1) {
+            roomsDescription = parts[0];
+        } else {
+            roomsDescription = parts.slice(0, -1).join(', ') + ' và ' + parts[parts.length - 1];
+        }
+        if (!confirm(`Bạn đang đặt ${roomsDescription}. Bạn có chắc chắn muốn đặt các phòng này không?`)) {
             e.preventDefault();
             return;
         }
@@ -1340,12 +1425,11 @@ function quickBook(btn) {
     const maxAdults = parseInt(btn.dataset.maxAdults || 0);
     const maxChildren = parseInt(btn.dataset.maxChildren || 0);
     const maxGuests = parseInt(btn.dataset.maxGuests || 0);
-    const roomLabel = btn.dataset.roomLabel;
+    const typeName = btn.dataset.roomTypeName || 'phòng';
     const href      = btn.dataset.href;
     
     if (maxAdults > neededAdults || maxChildren > neededChildren || maxGuests > neededGuests) {
-        if (!confirm(`Bạn đang đặt 1 phòng với tổng sức chứa cho ${maxAdults} người lớn. Bạn có chắc chắn muốn đặt số lượng phòng này cho ${neededAdults} người lớn và ${neededChildren} trẻ em không?`)) {
-            return;
+        if (!confirm(`Bạn đang đặt 1 ${typeName.toLowerCase()}. Bạn có chắc chắn muốn đặt phòng này không?`)) {            return;
         }
     }
     window.location.href = href;
@@ -1437,6 +1521,20 @@ function resetFilters() {
     }
     document.querySelectorAll('.amenity-filter').forEach(cb => cb.checked = false);
     applyFilters();
+}
+
+// Restore selected status for chips on page load and update the cart bar
+Object.keys(selected).forEach(id => {
+    const chip = document.getElementById('chip-' + id);
+    if (chip && !chip.classList.contains('taken')) {
+        chip.classList.add('selected');
+    } else {
+        delete selected[id];
+    }
+});
+saveCart();
+if (Object.keys(selected).length > 0) {
+    updateCartBar();
 }
 </script>
 @endsection

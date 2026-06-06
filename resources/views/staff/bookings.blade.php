@@ -303,6 +303,58 @@
     <p class="text-center px-4 text-muted" style="font-size:0.8rem;">Hãy chọn một phòng bất kỳ trên sơ đồ để xem thông tin chi tiết và thao tác nghiệp vụ.</p>
 </div>
 
+<!-- Modal Check-in Khách Vãng Lai -->
+<div class="modal fade" id="walkinCheckinModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold"><i class="fa-solid fa-user-plus me-2"></i>Check-in Khách Vãng Lai</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="walkinCheckinForm" onsubmit="submitWalkinCheckin(event)">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Số phòng</label>
+                        <input type="text" class="form-control" id="wi-room-number" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Họ và tên khách hàng</label>
+                        <input type="text" class="form-control" id="wi-name" required placeholder="Ví dụ: Nguyễn Văn A">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Email (Nhận link đánh giá phòng)</label>
+                        <input type="email" class="form-control" id="wi-email" required placeholder="Ví dụ: customer@gmail.com">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Số điện thoại</label>
+                        <input type="text" class="form-control" id="wi-phone" required placeholder="Ví dụ: 0987654321">
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label fw-bold">Người lớn</label>
+                            <input type="number" class="form-control" id="wi-adults" min="1" value="1" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-bold">Trẻ em</label>
+                            <input type="number" class="form-control" id="wi-children" min="0" value="0" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Ngày trả phòng dự kiến</label>
+                        <input type="date" class="form-control" id="wi-checkout" required min="<?= date('Y-m-d', strtotime('+1 day')) ?>" value="<?= date('Y-m-d', strtotime('+1 day')) ?>">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fa-solid fa-check me-1"></i>Hoàn tất Check-in
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <!-- Modal Checkout -->
 <div class="modal fade" id="checkoutModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
@@ -431,11 +483,8 @@ function selectRoom(el, room) {
 }
 
 function updateActionButtons(status) {
-    const canCheckout = ['occupied', 'soon_to_checkout', 'checked_in'].includes(status);
-    const canCheckin  = ['soon_to_checkin'].includes(status);
-
-    document.getElementById('btn-available').disabled       = !canCheckout;
-    document.getElementById('btn-checkin').disabled         = !canCheckin;
+    document.getElementById('btn-available').disabled       = false; // Mở tạm nút Trả phòng để demo
+    document.getElementById('btn-checkin').disabled         = false; // Mở tạm nút Check-in để demo
     document.getElementById('btn-soon_to_checkin').disabled = ['soon_to_checkin', 'occupied', 'checked_in', 'cleaning'].includes(status);
 }
 
@@ -449,6 +498,14 @@ function closeDetailPanel() {
 
 function doCheckIn() {
     if (!selectedRoom) return;
+
+    // Nếu phòng trống, đây là khách vãng lai, mở form thông tin
+    if (selectedRoom.status === 'available' || selectedRoom.status === 'cleaning' || selectedRoom.status === 'maintenance') {
+        document.getElementById('wi-room-number').value = 'Phòng ' + selectedRoom.room_number;
+        new bootstrap.Modal(document.getElementById('walkinCheckinModal')).show();
+        return;
+    }
+
     if (!confirm(`Check-in phòng ${selectedRoom.room_number}?`)) return;
     fetch(`/staff/room/${selectedRoom.id}/checkin`, {
         credentials: 'same-origin',
@@ -459,17 +516,25 @@ function doCheckIn() {
     .then(data => {
         if (data.success) {
             updateCardUI(selectedRoom.id, 'occupied');
+            const oldStatus = selectedRoom.status;
             selectedRoom.status = 'occupied';
             updateActionButtons('occupied');
-            updateStatusCounts(selectedRoom.status, 'occupied');
+            updateStatusCounts(oldStatus, 'occupied');
+            
+            // Tải lại chi tiết phòng để nạp booking hiện tại lên bảng điều khiển bên phải
+            selectRoom(document.getElementById(`room-card-${selectedRoom.id}`), selectedRoom);
+
             showToast(data.message, 'bg-success');
         } else { showToast(data.message, 'bg-danger'); }
     });
 }
 
 function showCheckoutModal() {
-    if (!selectedRoom || !currentBooking) {
-        showToast('Không tìm thấy booking cho phòng này.', 'bg-danger');
+    if (!selectedRoom) return;
+    if (!currentBooking) {
+        if (confirm('Không tìm thấy thông tin đặt phòng hoạt động cho phòng này. Bạn có muốn chuyển trạng thái phòng này sang "Đang dọn dẹp" (Cleaning) không?')) {
+            updateRoomStatus('cleaning');
+        }
         return;
     }
     const paid      = currentBooking.deposit_amount ?? 0;
@@ -644,6 +709,48 @@ function selectStaffMethod(radio) {
     });
     radio.closest('label').style.borderColor = '#212529';
     radio.closest('label').style.background  = '#f8f9fa';
+}
+
+function submitWalkinCheckin(event) {
+    event.preventDefault();
+    if (!selectedRoom) return;
+
+    const payload = {
+        is_walkin: true,
+        customer_name: document.getElementById('wi-name').value,
+        customer_email: document.getElementById('wi-email').value,
+        customer_phone: document.getElementById('wi-phone').value,
+        adult_count: document.getElementById('wi-adults').value,
+        child_count: document.getElementById('wi-children').value,
+        check_out: document.getElementById('wi-checkout').value,
+    };
+
+    fetch(`/staff/room/${selectedRoom.id}/checkin`, {
+        credentials: 'same-origin',
+        method: 'POST',
+        headers: { 
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest' 
+        },
+        body: JSON.stringify(payload)
+    })
+    .then(r => r.json())
+    .then(data => {
+        bootstrap.Modal.getInstance(document.getElementById('walkinCheckinModal')).hide();
+        if (data.success) {
+            updateCardUI(selectedRoom.id, 'occupied');
+            const oldStatus = selectedRoom.status;
+            selectedRoom.status = 'occupied';
+            updateActionButtons('occupied');
+            updateStatusCounts(oldStatus, 'occupied');
+            
+            // Reload panel
+            selectRoom(document.getElementById(`room-card-${selectedRoom.id}`), selectedRoom);
+            
+            showToast(data.message, 'bg-success');
+        } else { showToast(data.message, 'bg-danger'); }
+    });
 }
 
 window.addEventListener('DOMContentLoaded', resetFilters);

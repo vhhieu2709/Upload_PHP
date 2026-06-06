@@ -7,6 +7,8 @@ use Carbon\Carbon;
 
 class PricePolicy extends Model
 {
+    const UPDATED_AT = null;
+
     protected $fillable = ['policy_name', 'start_date', 'end_date', 'multiplier'];
 
     protected $casts = [

@@ -20,6 +20,28 @@
             </div>
             <div class="card-body">
                 <h5 class="card-title"><?= htmlspecialchars($room['type_name']) ?></h5>
+                <div class="rc-rating mb-2" style="font-size: 0.88rem; display: flex; align-items: center; gap: 4px;">
+                    <?php
+                    $avgRating = $room->averageRating();
+                    $fullStars = floor($avgRating);
+                    $halfStar = ($avgRating - $fullStars) >= 0.5 ? 1 : 0;
+                    $emptyStars = 5 - $fullStars - $halfStar;
+                    for ($i = 0; $i < $fullStars; $i++) {
+                        echo '<i class="bi bi-star-fill" style="color: #C9A84C;"></i>';
+                    }
+                    if ($halfStar) {
+                        echo '<i class="bi bi-star-half" style="color: #C9A84C;"></i>';
+                    }
+                    for ($i = 0; $i < $emptyStars; $i++) {
+                        echo '<i class="bi bi-star" style="color: #ccc;"></i>';
+                    }
+                    if ($avgRating > 0) {
+                        echo ' <span class="ms-1 text-muted fw-semibold" style="font-size: 0.82rem;">' . number_format($avgRating, 1) . '</span>';
+                    } else {
+                        echo ' <span class="ms-1 text-muted" style="font-size: 0.78rem;">(Chưa có đánh giá)</span>';
+                    }
+                    ?>
+                </div>
                 <p class="card-text text-muted small">
                     <?= htmlspecialchars(mb_substr($room['description'] ?? '', 0, 90)) ?>...
                 </p>

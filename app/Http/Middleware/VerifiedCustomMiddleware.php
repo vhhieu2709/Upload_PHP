@@ -12,6 +12,7 @@ class VerifiedCustomMiddleware
         $user = session('user');
 
         if (!$user || !$user['verified']) {
+            session()->put('url.intended', $request->fullUrl());
             return redirect()->route('verify')
                 ->with('error', 'Vui lòng xác thực email trước khi tiếp tục.');
         }

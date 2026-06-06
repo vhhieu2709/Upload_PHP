@@ -7,6 +7,7 @@ use App\Http\Controllers\BookingController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\CancellationController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\ReviewController;
 
 // ============================================================
 // PUBLIC — Không cần đăng nhập
@@ -65,6 +66,10 @@ Route::middleware(['auth.custom', 'verified.custom'])->group(function () {
     // Hủy phòng
     Route::get('/booking/{id}/cancel',    [CancellationController::class, 'show'])->name('booking.cancel.show');
     Route::post('/booking/{id}/cancel',   [CancellationController::class, 'cancel'])->name('booking.cancel');
+
+    // Đánh giá phòng
+    Route::get('/reviews/create',         [ReviewController::class, 'create'])->name('reviews.create');
+    Route::post('/reviews',               [ReviewController::class, 'store'])->name('reviews.store');
 });
 
 // ============================================================

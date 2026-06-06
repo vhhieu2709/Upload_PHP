@@ -53,7 +53,12 @@ class RoomController extends Controller
             ->pluck('booking_rooms.room_id');
 
         // Lấy loại phòng có phòng trống và đủ sức chứa
-        $roomTypes = RoomType::with('amenities')
+        $roomTypes = RoomType::with([
+            'amenities',
+            'rooms' => function ($q) {
+                $q->where('status', 'available');
+            }
+        ])
             ->where('max_adults', '>=', $adults)
             ->where('max_guests', '>=', $guests)
             ->whereHas('rooms', function ($q) use ($bookedRoomIds) {
@@ -65,6 +70,16 @@ class RoomController extends Controller
             }])
             ->get();
 
+        foreach ($roomTypes as $roomType) {
+            $roomType->available_rooms = $roomType->rooms->map(function ($r) use ($bookedRoomIds) {
+                $r->is_booked = $bookedRoomIds->contains($r->id);
+                return $r;
+            })->sortBy(['floor', 'room_number']);
+        }
+
+        $totalAvailable = $roomTypes->sum('available_count');
+        $allAmenities = \App\Models\Amenity::all();
+
         // Áp dụng price policy
         $multiplier = PricePolicy::getMultiplierForPeriod(
             Carbon::parse($checkIn),
@@ -73,7 +88,8 @@ class RoomController extends Controller
 
         return view('room.search', compact(
             'roomTypes', 'checkIn', 'checkOut',
-            'adults', 'children', 'nights', 'multiplier'
+            'adults', 'children', 'nights', 'multiplier',
+            'totalAvailable', 'allAmenities'
         ));
     }
 

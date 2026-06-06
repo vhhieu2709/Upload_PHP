@@ -7,6 +7,63 @@ use Carbon\Carbon;
 
 class Booking extends Model
 {
+    public static function boot()
+    {
+        parent::boot();
+
+        static::updated(function ($booking) {
+            if ($booking->wasChanged('status') && $booking->status === 'completed') {
+                try {
+                    $booking->loadMissing('rooms.roomType');
+                    $roomTypes = $booking->rooms->map(fn($r) => $r->roomType)->unique('id');
+
+                    if ($roomTypes->isNotEmpty() && $booking->customer_email) {
+                        \Illuminate\Support\Facades\Mail::send('emails.review_request', compact('booking', 'roomTypes'), function ($message) use ($booking) {
+                            $message->to($booking->customer_email)
+                                    ->subject('Cảm ơn quý khách và Đánh giá phòng tại Royal Hotel');
+                        });
+                    }
+                } catch (\Throwable $e) {
+                    \Illuminate\Support\Facades\Log::error("Gửi email đánh giá thất bại cho booking #{$booking->id}: " . $e->getMessage());
+                }
+            }
+        });
+    }
+
+    public function getCreatedAtColumn()
+    {
+        static $column = null;
+        if ($column === null) {
+            try {
+                if (\Illuminate\Support\Facades\Schema::hasColumn($this->getTable(), 'booking_date')) {
+                    $column = 'booking_date';
+                } else {
+                    $column = 'created_at';
+                }
+            } catch (\Throwable $e) {
+                $column = 'created_at';
+            }
+        }
+        return $column;
+    }
+
+    public function getUpdatedAtColumn()
+    {
+        static $column = null;
+        if ($column === null) {
+            try {
+                if (\Illuminate\Support\Facades\Schema::hasColumn($this->getTable(), 'updated_at')) {
+                    $column = 'updated_at';
+                } else {
+                    $column = null;
+                }
+            } catch (\Throwable $e) {
+                $column = null;
+            }
+        }
+        return $column;
+    }
+    
     protected $fillable = [
         'user_id', 'customer_name', 'customer_email', 'customer_phone',
         'check_in', 'check_out', 'actual_check_in', 'actual_check_out',

@@ -4,6 +4,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class Amenity extends Model
 {
+    public $timestamps = false;
+
     protected $fillable = ['amenity_name', 'icon'];
 
     public function roomTypes()

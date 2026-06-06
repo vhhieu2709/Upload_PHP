@@ -38,7 +38,7 @@ $people = $adults + $children;
             <div class="card-body p-0">
                 <?php
                 $totalBase = 0;
-                foreach ($rooms as $r) $totalBase += (float)$r['price'];
+                foreach ($rooms as $r) $totalBase += (float)($r->roomType?->price ?? 0);
                 ?>
 
                 <ul class="list-group list-group-flush">
@@ -47,11 +47,11 @@ $people = $adults + $children;
                     <div class="d-flex justify-content-between align-items-start">
                         <div>
                             <div class="fw-semibold">Phòng <?= htmlspecialchars($r['room_number']) ?></div>
-                            <div class="text-muted small"><?= htmlspecialchars($r['type_name']) ?> · Tầng <?= $r['floor'] ?></div>
-                            <div class="text-muted small">Tối đa <?= $r['max_guests'] ?> khách</div>
+                            <div class="text-muted small"><?= htmlspecialchars($r->roomType?->type_name ?? '') ?> · Tầng <?= $r['floor'] ?></div>
+                            <div class="text-muted small">Tối đa: <?= $r->roomType?->max_adults ?? 0 ?> người lớn, <?= $r->roomType?->max_children ?? 0 ?> trẻ em</div>
                         </div>
                         <div class="text-primary fw-bold text-end" style="white-space:nowrap">
-                            <?= number_format($r['price'], 0, ',', '.') ?><br>
+                            <?= number_format($r->roomType?->price ?? 0, 0, ',', '.') ?><br>
                             <small class="fw-normal text-muted">VNĐ/đêm</small>
                         </div>
                     </div>
@@ -467,6 +467,8 @@ document.getElementById('bookingForm').addEventListener('submit', function(e) {
         const firstError = document.querySelector('.is-invalid');
         if (firstError) firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
+    } else {
+    sessionStorage.removeItem('booking_cart');
 });
 </script>
 @endsection

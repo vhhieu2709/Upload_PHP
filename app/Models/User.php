@@ -10,6 +10,7 @@ use Illuminate\Notifications\Notifiable;
 class User extends Authenticatable
 {
     use Notifiable;
+    const UPDATED_AT = null;
 
     protected $fillable = [
         'username', 'password', 'fullname', 'email',

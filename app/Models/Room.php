@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class Room extends Model
 {
+    public $timestamps = false;
+
     protected $fillable = ['room_number', 'room_type_id', 'floor', 'status'];
 
     const STATUS_AVAILABLE   = 'available';

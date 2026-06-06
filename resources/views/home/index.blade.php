@@ -284,15 +284,6 @@ body { font-family: 'Montserrat', sans-serif; background: var(--cream); }
         </div>
 
         <?php
-        $roomImages = [
-            'Phòng Đơn Tiêu Chuẩn'  => 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=600&q=80',
-            'Phòng Đôi Tiêu Chuẩn'  => 'https://images.unsplash.com/photo-1631049552057-403cdb8f0658?w=600&q=80',
-            'Phòng 3 Người (Triple)' => 'https://images.unsplash.com/photo-1590490360182-c33d57733427?w=600&q=80',
-            'Phòng Gia Đình'         => 'https://images.unsplash.com/photo-1566665797739-1674de7a421a?w=600&q=80',
-            'Phòng VIP Cao Cấp'      => 'https://images.unsplash.com/photo-1611892440504-42a792e24d32?w=600&q=80',
-        ];
-        $defaultImg = 'https://images.unsplash.com/photo-1618773928121-c32242e63f39?w=600&q=80';
-
         $perPage    = 3;
         $total      = count($roomTypes);
         $totalPages = max(1, ceil($total / $perPage));
@@ -301,13 +292,40 @@ body { font-family: 'Montserrat', sans-serif; background: var(--cream); }
         ?>
 
         <div class="row g-4 justify-content-center">
-            <?php foreach ($pageTypes as $type): ?>
+            <?php foreach ($pageTypes as $type): 
+                $imgSrc = url('/') . '/images/rooms/' . $type['id'] . '.jpg';
+                $imgFallback = url('/') . '/images/rooms/default.jpg';
+            ?>
+            
             <div class="col-12 col-md-6 col-lg-4">
                 <div class="rc">
-                    <img src="<?= $roomImages[$type['type_name']] ?? $defaultImg ?>"
+                    <img src="<?= $imgSrc ?>"
+                         onerror="this.src='<?= $imgFallback ?>'"
                          class="rc-img" alt="<?= htmlspecialchars($type['type_name']) ?>">
                     <div class="rc-body">
                         <div class="rc-name"><?= htmlspecialchars($type['type_name']) ?></div>
+                        <div class="rc-rating mb-2" style="font-size: 0.88rem; display: flex; align-items: center; gap: 4px;">
+                            <?php
+                            $avgRating = $type->averageRating();
+                            $fullStars = floor($avgRating);
+                            $halfStar = ($avgRating - $fullStars) >= 0.5 ? 1 : 0;
+                            $emptyStars = 5 - $fullStars - $halfStar;
+                            for ($i = 0; $i < $fullStars; $i++) {
+                                echo '<i class="bi bi-star-fill" style="color: #C9A84C;"></i>';
+                            }
+                            if ($halfStar) {
+                                echo '<i class="bi bi-star-half" style="color: #C9A84C;"></i>';
+                            }
+                            for ($i = 0; $i < $emptyStars; $i++) {
+                                echo '<i class="bi bi-star" style="color: #ccc;"></i>';
+                            }
+                            if ($avgRating > 0) {
+                                echo ' <span class="ms-1 text-muted fw-semibold" style="font-size: 0.82rem;">' . number_format($avgRating, 1) . '</span>';
+                            } else {
+                                echo ' <span class="ms-1 text-muted" style="font-size: 0.78rem;">(Chưa có đánh giá)</span>';
+                            }
+                            ?>
+                        </div>
                         <div class="rc-meta">
                             <i class="bi bi-people"></i>Tối đa: <?= $type['max_adults'] ?> người lớn, <?= $type['max_children'] ?> trẻ em
                         </div>

@@ -304,7 +304,8 @@ $roomImages = [
     'Phòng Gia Đình'         => 'https://images.unsplash.com/photo-1566665797739-1674de7a421a?w=900&q=85',
     'Phòng VIP Cao Cấp'      => 'https://images.unsplash.com/photo-1611892440504-42a792e24d32?w=900&q=85',
 ];
-$heroImg = $roomImages[$room['type_name']] ?? 'https://images.unsplash.com/photo-1618773928121-c32242e63f39?w=900&q=85';
+$heroImg = url('/') . '/images/rooms/' . $room['id'] . '.jpg';
+$imgFallback = url('/') . '/images/rooms/default.jpg';
 
 $adults      = max(1, (int)($_GET['adults'] ?? 1));
 $children    = max(0, (int)($_GET['children'] ?? 0));
@@ -348,10 +349,35 @@ ksort($byFloor);
     <!-- ══ LEFT ══ -->
     <div class="col-lg-7">
 
-        <img src="<?= $heroImg ?>" class="detail-img"
+         <img src="<?= $heroImg ?>"
+             onerror="this.src='<?= $imgFallback ?>'"
+             class="detail-img"
              alt="<?= htmlspecialchars($room['type_name']) ?>">
 
         <h1 class="room-title"><?= htmlspecialchars($room['type_name']) ?></h1>
+        <div class="rc-rating mb-3" style="font-size: 1.1rem; display: flex; align-items: center; gap: 5px;">
+            <?php
+            $avgRating = $room->averageRating();
+            $fullStars = floor($avgRating);
+            $halfStar = ($avgRating - $fullStars) >= 0.5 ? 1 : 0;
+            $emptyStars = 5 - $fullStars - $halfStar;
+            for ($i = 0; $i < $fullStars; $i++) {
+                echo '<i class="bi bi-star-fill" style="color: #C9A84C;"></i>';
+            }
+            if ($halfStar) {
+                echo '<i class="bi bi-star-half" style="color: #C9A84C;"></i>';
+            }
+            for ($i = 0; $i < $emptyStars; $i++) {
+                echo '<i class="bi bi-star" style="color: #ccc;"></i>';
+            }
+            if ($avgRating > 0) {
+                echo ' <span class="ms-2 text-muted fw-bold" style="font-size: 1rem;">' . number_format($avgRating, 1) . ' / 5.0</span>';
+                echo ' <span class="ms-1 text-muted" style="font-size: 0.85rem;">(' . $room->reviews()->count() . ' đánh giá)</span>';
+            } else {
+                echo ' <span class="ms-2 text-muted" style="font-size: 0.88rem;">(Chưa có đánh giá)</span>';
+            }
+            ?>
+        </div>
 
         <div class="info-line">
             <i class="bi bi-people-fill"></i>
@@ -376,6 +402,33 @@ ksort($byFloor);
             <?php endforeach; ?>
         </div>
         <?php endif; ?>
+
+        <!-- Đánh giá từ khách hàng -->
+        <div class="block-heading mt-4" style="font-size: 1.15rem; font-weight: 700; color: var(--ink); border-bottom: 2px solid var(--gold); padding-bottom: 8px; margin-bottom: 15px;">
+            <i class="bi bi-chat-square-text-fill text-gold me-2"></i>Đánh giá từ khách hàng
+        </div>
+        <div class="reviews-list">
+            <?php if ($room->reviews->isEmpty()): ?>
+                <div class="p-3 mb-2 bg-white rounded shadow-sm border text-muted text-center" style="font-size: 0.9rem;">
+                    Chưa có đánh giá nào cho loại phòng này.
+                </div>
+            <?php else: ?>
+                <?php foreach ($room->reviews as $review): ?>
+                <div class="review-item p-3 mb-3 bg-white rounded shadow-sm border border-light" style="font-family: 'DM Sans', sans-serif;">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <strong class="text-dark" style="font-size: 0.9rem;"><i class="bi bi-person-circle me-1"></i><?= htmlspecialchars($review->user->fullname ?? 'Khách hàng') ?></strong>
+                        <span class="text-muted" style="font-size: 0.78rem;"><i class="bi bi-calendar-event me-1"></i><?= $review->created_at ? $review->created_at->format('d/m/Y') : '' ?></span>
+                    </div>
+                    <div class="mb-2">
+                        <?php for ($i = 1; $i <= 5; $i++): ?>
+                            <i class="bi bi-star-fill" style="color: <?= $i <= $review->rating ? '#C9A84C' : '#e4e5e9' ?>; font-size: 0.85rem;"></i>
+                        <?php endfor; ?>
+                    </div>
+                    <p class="mb-0 text-muted" style="font-size: 0.88rem; line-height: 1.5;"><?= nl2br(htmlspecialchars($review->comment ?? '')) ?></p>
+                </div>
+                <?php endforeach; ?>
+            <?php endif; ?>
+        </div>
 
     </div>
 
@@ -843,7 +896,7 @@ window.submitBooking = function() {
     const neededGuests = neededAdults + neededChildren;
 
     if (totalMaxAdults > neededAdults || totalMaxChildren > neededChildren || totalMaxGuests > neededGuests) {
-        if (!confirm(`Bạn đang đặt ${selectedRooms.size} phòng với tổng sức chứa cho ${totalMaxAdults} người lớn. Bạn có chắc chắn muốn đặt số lượng phòng này cho ${neededAdults} người lớn và ${neededChildren} trẻ em không?`)) {
+        if (!confirm(`Bạn đang đặt ${selectedRooms.size} phòng với tổng sức chứa cho ${totalMaxAdults} người lớn và ${totalMaxChildren} trẻ em. Bạn có chắc chắn muốn đặt số lượng phòng này cho ${neededAdults} người lớn và ${neededChildren} trẻ em không?`)) {
             return;
         }
     }
@@ -916,7 +969,7 @@ if (IS_LOGGED_IN) {
         const neededGuests = neededAdults + neededChildren;
         if (capEl) {
             capEl.className = 'bk-capacity ok';
-            capEl.innerHTML = `<i class="bi bi-info-circle-fill me-1"></i>Sức chứa đã chọn: ${totalMaxGuests} khách (Người lớn: ${totalMaxAdults}/${neededAdults}, Trẻ em: ${totalMaxChildren}/${neededChildren})`;
+            capEl.innerHTML = '';
         }
     };
 }
