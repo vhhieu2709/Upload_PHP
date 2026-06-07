@@ -22,7 +22,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // Exclude webhook routes khỏi CSRF
         $middleware->validateCsrfTokens(except: [
-            'api/webhook/*',
+            'webhook/*',
             'chatbot/api',
         ]);
     })
