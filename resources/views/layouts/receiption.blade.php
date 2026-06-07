@@ -3,19 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Lễ tân - Royal Hotel</title>
+    <title>@yield('title') - Royal Hotel</title>
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <style>
         body { 
             background-color: #f4f6f9; 
             font-family: 'Inter', sans-serif; 
-            overflow: hidden; 
             margin: 0;
             padding: 0;
         }
@@ -79,48 +79,8 @@
             background: #e0f2fe;
             font-weight: 600;
         }
-        
-        /* Dashboard Container */
-        .dashboard-container { 
-            display: flex; 
-            height: calc(100vh - 70px); 
-            position: relative;
-        }
-        
-        /* Main & Panel layout */
-        .main-content { 
-            flex: 1; 
-            overflow-y: auto; 
-            padding: 24px 30px; 
-            background: #f8fafc;
-        }
-        .right-panel { 
-            width: 380px; 
-            background: white; 
-            border-left: 1px solid #e2e8f0; 
-            padding: 24px; 
-            overflow-y: auto;
-            box-shadow: -2px 0 10px rgba(0,0,0,0.01);
-            display: flex;
-            flex-direction: column;
-        }
-        
-        /* Scrollbar styles */
-        ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 3px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #94a3b8;
-        }
     </style>
+    @stack('styles')
 </head>
 <body>
     <!-- Top Navbar -->
@@ -132,6 +92,7 @@
             <span class="navbar-brand-text">Royal Hotel</span>
         </div>
         
+       
         
         <div class="d-flex align-items-center gap-3">
             <div class="dropdown">
@@ -160,21 +121,12 @@
                     </li>
                 </ul>
             </div>
-            <div class="d-none align-items-center gap-2">
-                <img src="https://ui-avatars.com/api/?name=Reception&background=0D8ABC&color=fff" class="rounded-circle border" width="38" height="38" alt="Avatar">
-                <div class="d-none d-md-block text-start" style="line-height: 1.2;">
-                    <div class="fw-bold" style="font-size:0.85rem">{{ session('user.fullname', 'Lễ tân') }}</div>
-                    <span class="text-muted" style="font-size:0.75rem">Lễ tân trưởng</span>
-                </div>
-            </div>
         </div>
     </nav>
 
-    <div class="dashboard-container">
-        <!-- Main Content & Right Panel will be injected here -->
-        @yield('content')
-    </div>
+    @yield('content')
 
+    <!-- Bootstrap 5 Bundle JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     @stack('scripts')
 </body>
